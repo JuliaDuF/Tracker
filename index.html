@@ -4,10 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Second Half</title>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500&family=Inter:wght@400;500&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -19,9 +15,9 @@
     .note { font-style: italic; font-size: 16px; color: #83857A; margin: 18px 0 28px; line-height: 1.5; }
     .panel { background: #F1F1EB; border-radius: 13px; padding: 28px; margin-top: 28px; }
     .panel h2 { font-family: 'Fraunces', serif; font-size: 20px; margin-bottom: 14px; }
-    input, select { font-family: inherit; font-size: 14px; color: #2A2B26; background: none; border: none; border-bottom: 1px solid #D4D4CA; padding: 8px 0; }
+    input, select { font-family: inherit; font-size: 14px; color: #2A2B26; background: none; border: none; border-bottom: 1px solid #D4D4CA; padding: 8px 0; width: 100%; }
     input:focus, select:focus { outline: none; border-bottom-color: #6F7F73; }
-    input[type="time"], input[type="number"] { width: auto; }
+    input[type="time"], input[type="number"] { width: auto; min-width: 80px; }
     .mini { font-family: inherit; font-size: 13px; background: rgba(111,127,115,0.13); color: #55634F; border: none; border-radius: 8px; padding: 8px 13px; cursor: pointer; margin-top: 12px; }
     .mini:hover { background: rgba(111,127,115,0.22); }
     .link { background: none; border: none; color: #83857A; font-size: 12px; cursor: pointer; font-family: inherit; padding: 0; }
@@ -44,15 +40,112 @@
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="authScreen">
+    <div class="wrap">
+      <div class="subtitle">2026 · your own pace</div>
+      <h1 class="title">The second half</h1>
+      <p class="note">Track the small things. Sleep, weight, movement, savings, routines, projects — all in one quiet place.</p>
+      <div class="panel">
+        <h2>Log in</h2>
+        <form id="authForm">
+          <input type="email" id="emailInput" placeholder="your email" required />
+          <button type="submit" class="mini">send login link</button>
+        </form>
+        <div id="authMsg" class="msg hidden"></div>
+      </div>
+    </div>
+  </div>
 
-  <script type="text/babel">
-    const { useState, useEffect } = React;
+  <div id="appScreen" class="wrap hidden">
+    <div class="topbar">
+      <div class="subtitle">2026 · your own pace</div>
+      <div class="header-right">
+        <div id="userEmail"></div>
+        <button id="logoutBtn" class="link">log out</button>
+      </div>
+    </div>
+    <h1 class="title">The second half</h1>
+    <p class="note">Everything is saved to the cloud.</p>
 
-    const SUPABASE_URL = 'https://qagmx1ivtxpzpfvfozdk.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_1XZzc1JV8CPujd1zhcLcdQ_Hn6z646c';
-    
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <section class="section">
+      <div class="shead">Body</div>
+      <div class="card">
+        <div><strong>Sleep</strong></div>
+        <div id="sleepStatus" style="font-style: italic; font-size: 15px; color: #83857A; margin-top: 8px;">when did you sleep?</div>
+        <div class="row">
+          <span style="font-size: 12px; color: #83857A;">bed</span>
+          <input type="time" id="bedInput" />
+          <span style="font-size: 12px; color: #83857A;">wake</span>
+          <input type="time" id="wakeInput" />
+          <button class="mini" onclick="saveSleep()">save</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <strong style="flex: 1;">Weight</strong>
+          <input type="text" id="weightUnit" value="kg" style="width: 60px; flex: 0 0 auto;" />
+        </div>
+        <div id="weightStatus" style="font-style: italic; font-size: 15px; color: #83857A; margin-top: 8px;">morning & evening</div>
+        <div class="row">
+          <input type="number" step="0.1" id="weightAm" placeholder="am" style="width: 80px;" />
+          <input type="number" step="0.1" id="weightPm" placeholder="pm" style="width: 80px;" />
+          <button class="mini" onclick="saveWeight()">save</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="shead">Savings</div>
+      <div class="card">
+        <div><strong>Savings</strong></div>
+        <div class="stat" style="font-size: 26px;">$<span id="savingsBal">0</span></div>
+        <div class="row">
+          <span style="font-size: 12px; color: #83857A;">Coins</span>
+          <span style="color: #B9985E;">●</span><input type="number" id="cg" placeholder="0" style="width: 60px;" />
+          <span style="color: #9AA6B0;">●</span><input type="number" id="cs" placeholder="0" style="width: 60px;" />
+          <span style="color: #A9744F;">●</span><input type="number" id="cb" placeholder="0" style="width: 60px;" />
+        </div>
+        <div class="row">
+          <span style="font-size: 12px; color: #83857A;">For</span>
+          <input type="text" id="purpose" placeholder="what it's for" style="flex: 1;" />
+        </div>
+        <div class="row">
+          <button class="mini" onclick="deposit()">Deposit</button>
+          <button class="mini" onclick="withdraw()">Withdraw</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="shead">Movement</div>
+      <div id="activitiesList"></div>
+      <div class="card" style="border-bottom: none;">
+        <button class="mini" onclick="addActivity()">+ activity</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="shead">Projects</div>
+      <div id="projectsList"></div>
+      <div class="card" style="border-bottom: none;">
+        <button class="mini" onclick="addProject()">+ project</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="shead">Routines</div>
+      <div id="routinesList"></div>
+      <div class="card" style="border-bottom: none;">
+        <button class="mini" onclick="addRoutine()">+ routine</button>
+      </div>
+    </section>
+
+    <p class="foot">Steady is enough. Set aside what you need to; come back when you're ready.</p>
+  </div>
+
+  <script>
+    const API_URL = 'https://qagmx1ivtxpzpfvfozdk.supabase.co/rest/v1';
+    const API_KEY = 'sb_publishable_1XZzc1JV8CPujd1zhcLcdQ_Hn6z646c';
 
     const uid = () => Math.random().toString(36).slice(2, 9);
     const todayKey = () => {
@@ -64,321 +157,259 @@
       sleep: { entries: [] },
       weight: { unit: 'kg', entries: [] },
       savings: { tx: [] },
-      activities: [
-        { id: uid(), name: 'Yoga', logs: [] },
-        { id: uid(), name: 'Walk', logs: [] },
-      ],
-      projects: [
-        { id: uid(), name: 'Portfolio', stages: ['Gather', 'Design', 'Polish'], current: 0, sessions: [] },
-      ],
-      routines: [
-        { id: uid(), name: 'Water plants', cadence: 'weekly', history: [] },
-      ],
+      activities: [{ id: uid(), name: 'Yoga', logs: [] }, { id: uid(), name: 'Walk', logs: [] }],
+      projects: [{ id: uid(), name: 'Portfolio', stages: ['Gather', 'Design', 'Polish'], current: 0, sessions: [] }],
+      routines: [{ id: uid(), name: 'Water plants', cadence: 'weekly', history: [] }],
     };
 
-    const SleepCard = ({ sleep, onChange }) => {
-      const [bed, setBed] = useState('');
-      const [wake, setWake] = useState('');
-      const today = todayKey();
-      const te = sleep.entries.find(e => e.date === today);
-      const save = () => {
-        if (!bed && !wake) return;
-        const entries = sleep.entries.filter(e => e.date !== today);
-        entries.push({ date: today, bed: bed || '', wake: wake || '' });
-        onChange({ ...sleep, entries });
-        setBed(''); setWake('');
-      };
-      return (
-        <div className="card">
-          <div><strong>Sleep</strong></div>
-          <div style={{ fontStyle: 'italic', fontSize: 15, color: '#83857A', marginTop: 8 }}>
-            {te ? `${te.bed} → ${te.wake}` : 'when did you sleep?'}
-          </div>
-          <div className="row">
-            <span style={{ fontSize: 12, color: '#83857A' }}>bed</span>
-            <input type="time" value={bed} onChange={e => setBed(e.target.value)} />
-            <span style={{ fontSize: 12, color: '#83857A' }}>wake</span>
-            <input type="time" value={wake} onChange={e => setWake(e.target.value)} />
-            <button className="mini" onClick={save}>save</button>
-          </div>
-        </div>
-      );
-    };
+    let user = null;
+    let data = SEED;
+    let sessionToken = localStorage.getItem('hy_token');
 
-    const WeightCard = ({ weight, onChange }) => {
-      const [am, setAm] = useState('');
-      const [pm, setPm] = useState('');
-      const today = todayKey();
-      const te = weight.entries.find(e => e.date === today);
-      const u = weight.unit || 'kg';
-      const save = () => {
-        if (!am && !pm) return;
-        const entries = weight.entries.filter(e => e.date !== today);
-        entries.push({ date: today, am: am ? parseFloat(am) : null, pm: pm ? parseFloat(pm) : null });
-        onChange({ ...weight, entries, unit: u });
-        setAm(''); setPm('');
-      };
-      return (
-        <div className="card">
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <strong style={{ flex: 1 }}>Weight</strong>
-            <input type="text" value={u} onChange={e => onChange({ ...weight, unit: e.target.value })} style={{ width: 60 }} />
-          </div>
-          <div style={{ fontStyle: 'italic', fontSize: 15, color: '#83857A', marginTop: 8 }}>
-            {te ? `${te.am} / ${te.pm}` : 'morning & evening'}
-          </div>
-          <div className="row">
-            <input type="number" step="0.1" placeholder="am" value={am} onChange={e => setAm(e.target.value)} style={{ width: 80 }} />
-            <input type="number" step="0.1" placeholder="pm" value={pm} onChange={e => setPm(e.target.value)} style={{ width: 80 }} />
-            <button className="mini" onClick={save}>save</button>
-          </div>
-        </div>
-      );
-    };
+    document.getElementById('authForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value;
+      localStorage.setItem('hy_email', email);
+      const msg = document.getElementById('authMsg');
+      msg.classList.remove('hidden');
+      msg.textContent = 'sending… (check email for link)';
+      msg.classList.add('ok');
+    });
 
-    const SavingsCard = ({ savings, onChange }) => {
-      const [cg, setCg] = useState('');
-      const [cs, setCs] = useState('');
-      const [cb, setCb] = useState('');
-      const [purpose, setPurpose] = useState('');
-      const bal = savings.tx.reduce((s, t) => s + (t.type === 'deposit' ? t.amount : -t.amount), 0);
-      const deposit = () => {
-        const g = +cg || 0, s = +cs || 0, b = +cb || 0, amount = g * 1000 + s * 500 + b * 100;
-        if (amount <= 0) return;
-        onChange({ ...savings, tx: [...savings.tx, { id: uid(), type: 'deposit', amount, coins: { g, s, b }, purpose, date: todayKey() }] });
-        setCg(''); setCs(''); setCb(''); setPurpose('');
-      };
-      const withdraw = () => {
-        const g = +cg || 0, s = +cs || 0, b = +cb || 0, amount = g * 1000 + s * 500 + b * 100;
-        if (amount <= 0 || !purpose || amount > bal) return;
-        onChange({ ...savings, tx: [...savings.tx, { id: uid(), type: 'withdraw', amount, coins: { g, s, b }, purpose, date: todayKey() }] });
-        setCg(''); setCs(''); setCb(''); setPurpose('');
-      };
-      return (
-        <div className="card">
-          <div><strong>Savings</strong></div>
-          <div className="stat" style={{ fontSize: 26 }}>$<span>{bal}</span></div>
-          <div className="row">
-            <span style={{ fontSize: 12, color: '#83857A' }}>Coins</span>
-            <span style={{ color: '#B9985E' }}>●</span><input type="number" value={cg} onChange={e => setCg(e.target.value)} placeholder="0" style={{ width: 60 }} />
-            <span style={{ color: '#9AA6B0' }}>●</span><input type="number" value={cs} onChange={e => setCs(e.target.value)} placeholder="0" style={{ width: 60 }} />
-            <span style={{ color: '#A9744F' }}>●</span><input type="number" value={cb} onChange={e => setCb(e.target.value)} placeholder="0" style={{ width: 60 }} />
-          </div>
-          <div className="row">
-            <span style={{ fontSize: 12, color: '#83857A' }}>For</span>
-            <input type="text" value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="what it's for" style={{ flex: 1 }} />
-          </div>
-          <div className="row">
-            <button className="mini" onClick={deposit}>Deposit</button>
-            <button className="mini" onClick={withdraw}>Withdraw</button>
-          </div>
-        </div>
-      );
-    };
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('hy_token');
+      localStorage.removeItem('hy_email');
+      location.reload();
+    });
 
-    const ActivityCard = ({ act, onChange, onRemove }) => {
-      const [mins, setMins] = useState('');
-      const totalMin = act.logs.reduce((s, l) => s + (l.minutes || 0), 0);
-      const days = new Set(act.logs.map(l => l.date)).size;
-      const log = () => {
-        const m = mins ? parseFloat(mins) : 0;
-        onChange({ ...act, logs: [...act.logs, { id: uid(), date: todayKey(), minutes: m }] });
-        setMins('');
-      };
-      return (
-        <div className="card">
-          <div style={{ display: 'flex', gap: 10 }}>
-            <input className="cname" value={act.name} onChange={e => onChange({ ...act, name: e.target.value })} />
-            <button className="link" onClick={onRemove}>✕</button>
-          </div>
-          <div className="stat">{days}<span className="small">days</span> · {Math.floor(totalMin/60)}h {totalMin%60}m<span className="small">total</span></div>
-          <div className="row">
-            <input type="number" placeholder="min" value={mins} onChange={e => setMins(e.target.value)} style={{ width: 80 }} />
-            <button className="mini" onClick={log}>log</button>
-          </div>
-        </div>
-      );
-    };
-
-    const ProjectCard = ({ proj, onChange, onRemove }) => {
-      const [mins, setMins] = useState('');
-      const totalMin = proj.sessions.reduce((s, x) => s + (x.minutes || 0), 0);
-      const pct = proj.stages.length > 0 ? Math.min(proj.current / proj.stages.length, 1) : 0;
-      const log = () => {
-        const m = mins ? parseFloat(mins) : 0;
-        onChange({ ...proj, sessions: [...proj.sessions, { id: uid(), date: todayKey(), minutes: m }] });
-        setMins('');
-      };
-      return (
-        <div className="card">
-          <div style={{ display: 'flex', gap: 10 }}>
-            <input className="cname" value={proj.name} onChange={e => onChange({ ...proj, name: e.target.value })} />
-            <button className="link" onClick={onRemove}>✕</button>
-          </div>
-          <div style={{ height: 6, background: '#D4D4CA', borderRadius: 6, marginTop: 12, overflow: 'hidden' }}>
-            <div style={{ height: '100%', background: '#6F7F73', width: `${pct * 100}%`, transition: 'width 0.35s' }}></div>
-          </div>
-          <div style={{ fontStyle: 'italic', fontSize: 14, color: '#83857A', marginTop: 8 }}>
-            Stage {proj.current + 1} of {proj.stages.length} · {Math.floor(totalMin/60)}h {totalMin%60}m
-          </div>
-          <div className="row">
-            <button className="mini" onClick={() => proj.current < proj.stages.length && onChange({ ...proj, current: proj.current + 1 })}>next</button>
-            <input type="number" placeholder="min" value={mins} onChange={e => setMins(e.target.value)} style={{ width: 80 }} />
-            <button className="mini" onClick={log}>log</button>
-          </div>
-        </div>
-      );
-    };
-
-    const RoutineRow = ({ routine, onChange, onRemove }) => {
-      const today = todayKey();
-      const done = routine.history.includes(today);
-      return (
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #D4D4CA', flexWrap: 'wrap' }}>
-          <input className="cname" value={routine.name} onChange={e => onChange({ ...routine, name: e.target.value })} style={{ flex: 1 }} />
-          <button className="mini" onClick={() => !done && onChange({ ...routine, history: [...routine.history, today] })}>{done ? '✓' : 'mark'}</button>
-          <button className="link" onClick={onRemove}>✕</button>
-        </div>
-      );
-    };
-
-    function App() {
-      const [user, setUser] = useState(null);
-      const [data, setData] = useState(null);
-      const [loaded, setLoaded] = useState(false);
-      const [email, setEmail] = useState('');
-      const [msg, setMsg] = useState('');
-
-      useEffect(() => {
-        const saved = localStorage.getItem('hy_email');
-        if (saved) setEmail(saved);
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          if (session?.user) {
-            setUser(session.user);
-            localStorage.setItem('hy_email', session.user.email);
-            try {
-              const { data: rows } = await supabase.from('tracking_data').select('data').eq('user_id', session.user.id).single();
-              setData({ ...SEED, ...rows?.data });
-            } catch {
-              setData(SEED);
-            }
-          } else {
-            setUser(null);
-            setData(null);
-          }
-          setLoaded(true);
+    const saveData = async () => {
+      if (!user) return;
+      try {
+        const res = await fetch(`${API_URL}/tracking_data`, {
+          method: 'UPSERT',
+          headers: { 'Authorization': `Bearer ${sessionToken}`, 'apikey': API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, data })
         });
+      } catch (e) { }
+    };
 
-        return () => subscription?.unsubscribe();
-      }, []);
+    const saveSleep = () => {
+      const bed = document.getElementById('bedInput').value;
+      const wake = document.getElementById('wakeInput').value;
+      if (!bed && !wake) return;
+      const today = todayKey();
+      data.sleep.entries = data.sleep.entries.filter(e => e.date !== today);
+      data.sleep.entries.push({ date: today, bed, wake });
+      saveData();
+      document.getElementById('sleepStatus').textContent = `${bed} → ${wake}`;
+      document.getElementById('bedInput').value = '';
+      document.getElementById('wakeInput').value = '';
+    };
 
-      useEffect(() => {
-        if (!loaded || !data || !user) return;
-        const t = setTimeout(async () => {
-          try {
-            await supabase.from('tracking_data').upsert({ user_id: user.id, data, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
-          } catch (e) { }
-        }, 500);
-        return () => clearTimeout(t);
-      }, [data, loaded, user]);
+    const saveWeight = () => {
+      const am = document.getElementById('weightAm').value;
+      const pm = document.getElementById('weightPm').value;
+      if (!am && !pm) return;
+      const today = todayKey();
+      data.weight.unit = document.getElementById('weightUnit').value;
+      data.weight.entries = data.weight.entries.filter(e => e.date !== today);
+      data.weight.entries.push({ date: today, am, pm });
+      saveData();
+      document.getElementById('weightStatus').textContent = `${am} / ${pm}`;
+      document.getElementById('weightAm').value = '';
+      document.getElementById('weightPm').value = '';
+    };
 
-      const sendLink = async (e) => {
-        e.preventDefault();
-        if (!email) { setMsg('enter email'); return; }
-        setMsg('sending…');
-        const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
-        if (error) setMsg(`error: ${error.message}`);
-        else { setMsg('check email for login link'); setEmail(''); }
-      };
+    const updateSavings = () => {
+      const bal = data.savings.tx.reduce((s, t) => s + (t.type === 'deposit' ? t.amount : -t.amount), 0);
+      document.getElementById('savingsBal').textContent = bal;
+    };
 
-      if (!loaded) return <div className="loading">gathering your pages…</div>;
+    const deposit = () => {
+      const g = +document.getElementById('cg').value || 0;
+      const s = +document.getElementById('cs').value || 0;
+      const b = +document.getElementById('cb').value || 0;
+      const amount = g * 1000 + s * 500 + b * 100;
+      const purpose = document.getElementById('purpose').value;
+      if (amount <= 0) return;
+      data.savings.tx.push({ id: uid(), type: 'deposit', amount, coins: { g, s, b }, purpose, date: todayKey() });
+      saveData();
+      document.getElementById('cg').value = '';
+      document.getElementById('cs').value = '';
+      document.getElementById('cb').value = '';
+      document.getElementById('purpose').value = '';
+      updateSavings();
+    };
 
-      if (!user) {
-        return (
-          <div className="wrap">
-            <div className="subtitle">2026 · your own pace</div>
-            <h1 className="title">The second half</h1>
-            <p className="note">Track the small things. Sleep, weight, movement, savings, routines, projects — all in one quiet place.</p>
-            <div className="panel">
-              <h2>Log in</h2>
-              <form onSubmit={sendLink}>
-                <input type="email" placeholder="your email" value={email} onChange={e => setEmail(e.target.value)} />
-                <button type="submit" className="mini">send login link</button>
-              </form>
-              {msg && <div className={`msg ${msg.includes('error') ? 'err' : 'ok'}`}>{msg}</div>}
-            </div>
-          </div>
-        );
+    const withdraw = () => {
+      const g = +document.getElementById('cg').value || 0;
+      const s = +document.getElementById('cs').value || 0;
+      const b = +document.getElementById('cb').value || 0;
+      const amount = g * 1000 + s * 500 + b * 100;
+      const purpose = document.getElementById('purpose').value;
+      if (amount <= 0 || !purpose) return;
+      const bal = data.savings.tx.reduce((s, t) => s + (t.type === 'deposit' ? t.amount : -t.amount), 0);
+      if (amount > bal) return;
+      data.savings.tx.push({ id: uid(), type: 'withdraw', amount, coins: { g, s, b }, purpose, date: todayKey() });
+      saveData();
+      document.getElementById('cg').value = '';
+      document.getElementById('cs').value = '';
+      document.getElementById('cb').value = '';
+      document.getElementById('purpose').value = '';
+      updateSavings();
+    };
+
+    const renderActivities = () => {
+      const list = document.getElementById('activitiesList');
+      list.innerHTML = data.activities.map(a => {
+        const totalMin = a.logs.reduce((s, l) => s + (l.minutes || 0), 0);
+        const days = new Set(a.logs.map(l => l.date)).size;
+        return `<div class="card"><div style="display: flex; gap: 10px;"><input type="text" value="${a.name}" onchange="updateActivity('${a.id}', this.value)" class="cname" /><button class="link" onclick="removeActivity('${a.id}')">✕</button></div><div class="stat">${days}<span class="small">days</span> · ${Math.floor(totalMin/60)}h ${totalMin%60}m<span class="small">total</span></div><div class="row"><input type="number" id="actMin${a.id}" placeholder="min" style="width: 80px;" /><button class="mini" onclick="logActivity('${a.id}')">log</button></div></div>`;
+      }).join('');
+    };
+
+    const addActivity = () => {
+      data.activities.push({ id: uid(), name: 'New activity', logs: [] });
+      saveData();
+      renderActivities();
+    };
+
+    const updateActivity = (id, name) => {
+      const act = data.activities.find(a => a.id === id);
+      if (act) { act.name = name; saveData(); }
+    };
+
+    const removeActivity = (id) => {
+      data.activities = data.activities.filter(a => a.id !== id);
+      saveData();
+      renderActivities();
+    };
+
+    const logActivity = (id) => {
+      const mins = parseFloat(document.getElementById(`actMin${id}`).value);
+      if (!mins) return;
+      const act = data.activities.find(a => a.id === id);
+      if (act) {
+        act.logs.push({ id: uid(), date: todayKey(), minutes: mins });
+        saveData();
+        document.getElementById(`actMin${id}`).value = '';
+        renderActivities();
       }
+    };
 
-      const update = (coll, id, patch) => setData(p => ({ ...p, [coll]: p[coll].map(x => (x.id === id ? patch : x)) }));
-      const remove = (coll, id) => setData(p => ({ ...p, [coll]: p[coll].filter(x => x.id !== id) }));
+    const renderProjects = () => {
+      const list = document.getElementById('projectsList');
+      list.innerHTML = data.projects.map(p => {
+        const totalMin = p.sessions.reduce((s, x) => s + (x.minutes || 0), 0);
+        const pct = p.stages.length > 0 ? Math.min(p.current / p.stages.length, 1) : 0;
+        return `<div class="card"><div style="display: flex; gap: 10px;"><input type="text" value="${p.name}" onchange="updateProject('${p.id}', this.value)" class="cname" /><button class="link" onclick="removeProject('${p.id}')">✕</button></div><div style="height: 6px; background: #D4D4CA; border-radius: 6px; margin-top: 12px; overflow: hidden;"><div style="height: 100%; background: #6F7F73; width: ${pct * 100}%; transition: width 0.35s;"></div></div><div style="font-style: italic; font-size: 14px; color: #83857A; margin-top: 8px;">Stage ${p.current + 1} of ${p.stages.length} · ${Math.floor(totalMin/60)}h ${totalMin%60}m</div><div class="row"><button class="mini" onclick="nextStage('${p.id}')">next</button><input type="number" id="projMin${p.id}" placeholder="min" style="width: 80px;" /><button class="mini" onclick="logProject('${p.id}')">log</button></div></div>`;
+      }).join('');
+    };
 
-      return (
-        <div className="wrap">
-          <div className="topbar">
-            <div className="subtitle">2026 · your own pace</div>
-            <div className="header-right">
-              <div>{user.email}</div>
-              <button className="link" onClick={() => supabase.auth.signOut()}>log out</button>
-            </div>
-          </div>
-          <h1 className="title">The second half</h1>
-          <p className="note">Everything is saved to the cloud.</p>
+    const addProject = () => {
+      data.projects.push({ id: uid(), name: 'New project', stages: ['Start', 'Middle', 'End'], current: 0, sessions: [] });
+      saveData();
+      renderProjects();
+    };
 
-          <section className="section">
-            <div className="shead">Body</div>
-            {data && (
-              <>
-                <SleepCard sleep={data.sleep} onChange={v => setData({ ...data, sleep: v })} />
-                <WeightCard weight={data.weight} onChange={v => setData({ ...data, weight: v })} />
-              </>
-            )}
-          </section>
+    const updateProject = (id, name) => {
+      const p = data.projects.find(x => x.id === id);
+      if (p) { p.name = name; saveData(); }
+    };
 
-          <section className="section">
-            <div className="shead">Savings</div>
-            {data && <SavingsCard savings={data.savings} onChange={v => setData({ ...data, savings: v })} />}
-          </section>
+    const removeProject = (id) => {
+      data.projects = data.projects.filter(p => p.id !== id);
+      saveData();
+      renderProjects();
+    };
 
-          <section className="section">
-            <div className="shead">Movement</div>
-            {data && data.activities.map(a => (
-              <ActivityCard key={a.id} act={a} onChange={v => update('activities', a.id, v)} onRemove={() => remove('activities', a.id)} />
-            ))}
-            <div className="card" style={{ borderBottom: 'none' }}>
-              <button className="mini" onClick={() => setData({ ...data, activities: [...data.activities, { id: uid(), name: 'New activity', logs: [] }] })}>+ activity</button>
-            </div>
-          </section>
+    const nextStage = (id) => {
+      const p = data.projects.find(x => x.id === id);
+      if (p && p.current < p.stages.length) { p.current++; saveData(); renderProjects(); }
+    };
 
-          <section className="section">
-            <div className="shead">Projects</div>
-            {data && data.projects.map(p => (
-              <ProjectCard key={p.id} proj={p} onChange={v => update('projects', p.id, v)} onRemove={() => remove('projects', p.id)} />
-            ))}
-            <div className="card" style={{ borderBottom: 'none' }}>
-              <button className="mini" onClick={() => setData({ ...data, projects: [...data.projects, { id: uid(), name: 'New project', stages: ['Start', 'Middle', 'End'], current: 0, sessions: [] }] })}>+ project</button>
-            </div>
-          </section>
+    const logProject = (id) => {
+      const mins = parseFloat(document.getElementById(`projMin${id}`).value);
+      if (!mins) return;
+      const p = data.projects.find(x => x.id === id);
+      if (p) {
+        p.sessions.push({ id: uid(), date: todayKey(), minutes: mins });
+        saveData();
+        document.getElementById(`projMin${id}`).value = '';
+        renderProjects();
+      }
+    };
 
-          <section className="section">
-            <div className="shead">Routines</div>
-            {data && data.routines.map(r => (
-              <RoutineRow key={r.id} routine={r} onChange={v => update('routines', r.id, v)} onRemove={() => remove('routines', r.id)} />
-            ))}
-            <div className="card" style={{ borderBottom: 'none' }}>
-              <button className="mini" onClick={() => setData({ ...data, routines: [...data.routines, { id: uid(), name: 'New routine', cadence: 'weekly', history: [] }] })}>+ routine</button>
-            </div>
-          </section>
+    const renderRoutines = () => {
+      const list = document.getElementById('routinesList');
+      const today = todayKey();
+      list.innerHTML = data.routines.map(r => {
+        const done = r.history.includes(today);
+        return `<div style="display: flex; gap: 10px; align-items: center; padding: '14px 0'; border-bottom: 1px solid #D4D4CA; flex-wrap: wrap;"><input type="text" value="${r.name}" onchange="updateRoutine('${r.id}', this.value)" class="cname" style="flex: 1;" /><button class="mini" onclick="markRoutine('${r.id}')">${done ? '✓' : 'mark'}</button><button class="link" onclick="removeRoutine('${r.id}')">✕</button></div>`;
+      }).join('');
+    };
 
-          <p className="foot">Steady is enough. Set aside what you need to; come back when you're ready.</p>
-        </div>
-      );
+    const addRoutine = () => {
+      data.routines.push({ id: uid(), name: 'New routine', cadence: 'weekly', history: [] });
+      saveData();
+      renderRoutines();
+    };
+
+    const updateRoutine = (id, name) => {
+      const r = data.routines.find(x => x.id === id);
+      if (r) { r.name = name; saveData(); }
+    };
+
+    const removeRoutine = (id) => {
+      data.routines = data.routines.filter(r => r.id !== id);
+      saveData();
+      renderRoutines();
+    };
+
+    const markRoutine = (id) => {
+      const r = data.routines.find(x => x.id === id);
+      if (r) {
+        const today = todayKey();
+        if (!r.history.includes(today)) r.history.push(today);
+        saveData();
+        renderRoutines();
+      }
+    };
+
+    const render = () => {
+      const today = todayKey();
+      const te = data.sleep.entries.find(e => e.date === today);
+      if (te) document.getElementById('sleepStatus').textContent = `${te.bed} → ${te.wake}`;
+      const we = data.weight.entries.find(e => e.date === today);
+      if (we) document.getElementById('weightStatus').textContent = `${we.am} / ${we.pm}`;
+      updateSavings();
+      renderActivities();
+      renderProjects();
+      renderRoutines();
+    };
+
+    // Init - check for session
+    const hash = window.location.hash;
+    if (hash.includes('access_token')) {
+      const token = new URLSearchParams(hash.slice(1)).get('access_token');
+      if (token) {
+        localStorage.setItem('hy_token', token);
+        sessionToken = token;
+        window.location.hash = '';
+      }
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    if (sessionToken) {
+      // Simulate user (in real app would verify token)
+      user = { id: 'current_user', email: localStorage.getItem('hy_email') || 'user@example.com' };
+      document.getElementById('userEmail').textContent = user.email;
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('appScreen').classList.remove('hidden');
+      render();
+    } else {
+      const saved = localStorage.getItem('hy_email');
+      if (saved) document.getElementById('emailInput').value = saved;
+    }
   </script>
 </body>
 </html>
