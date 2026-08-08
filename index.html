@@ -4,120 +4,63 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Second Half</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500&family=Inter:wght@400;500&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #E7E7E0; color: #2A2B26; font-family: 'Inter', sans-serif; min-height: 100vh; }
+    body { background: #E7E7E0; color: #2A2B26; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
     .wrap { max-width: 680px; margin: 0 auto; padding: 56px 26px 128px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 28px; }
     .title { font-family: 'Fraunces', serif; font-size: 42px; font-weight: 500; margin: 14px 0 20px; }
-    .subtitle { font-size: 14px; color: #83857A; letter-spacing: 0.2em; text-transform: uppercase; }
+    .subtitle { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #83857A; }
     .note { font-style: italic; font-size: 16px; color: #83857A; margin: 18px 0 28px; line-height: 1.5; }
     .panel { background: #F1F1EB; border-radius: 13px; padding: 28px; margin-top: 28px; }
-    input, select { font-family: inherit; font-size: 14px; color: #2A2B26; background: none; border: none; border-bottom: 1px solid #D4D4CA; padding: 8px 0; width: 100%; }
+    .panel h2 { font-family: 'Fraunces', serif; font-size: 20px; margin-bottom: 14px; }
+    input, select { font-family: inherit; font-size: 14px; color: #2A2B26; background: none; border: none; border-bottom: 1px solid #D4D4CA; padding: 8px 0; }
     input:focus, select:focus { outline: none; border-bottom-color: #6F7F73; }
-    input[type="time"], input[type="number"] { width: auto; min-width: 100px; }
-    .btn { font-family: inherit; font-size: 14px; background: #6F7F73; color: #fff; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; margin-top: 14px; }
-    .btn:hover { background: #5a6b63; }
-    .section { margin-top: 56px; }
-    .shead { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 500; border-bottom: 1px solid #D4D4CA; padding-bottom: 12px; margin-bottom: 14px; }
-    .card { padding: 22px 0; border-bottom: 1px solid #D4D4CA; }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
-    .mini { font-family: inherit; font-size: 13px; background: #D4D4CA; color: #2A2B26; border: none; border-radius: 8px; padding: 8px 13px; cursor: pointer; }
+    input[type="time"], input[type="number"] { width: auto; }
+    .mini { font-family: inherit; font-size: 13px; background: rgba(111,127,115,0.13); color: #55634F; border: none; border-radius: 8px; padding: 8px 13px; cursor: pointer; margin-top: 12px; }
+    .mini:hover { background: rgba(111,127,115,0.22); }
     .link { background: none; border: none; color: #83857A; font-size: 12px; cursor: pointer; font-family: inherit; padding: 0; }
+    .link:hover { color: #2A2B26; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+    .section { margin-top: 56px; }
+    .shead { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 500; border-bottom: 1px solid #D4D4CA; padding-bottom: 12px; margin-bottom: 10px; }
+    .card { padding: 22px 0; border-bottom: 1px solid #D4D4CA; }
+    .cname { flex: 1; font-family: 'Fraunces', serif; font-size: 18px; font-weight: 500; background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; color: #2A2B26; }
+    .cname:focus { outline: none; border-bottom-color: #6F7F73; }
+    .stat { font-size: 20px; font-family: 'Fraunces', serif; font-weight: 500; margin-top: 12px; }
+    .small { font-size: 12px; color: #83857A; margin-left: 8px; }
     .msg { font-size: 13px; margin-top: 10px; }
     .msg.err { color: #A8735B; }
     .msg.ok { color: #55634F; }
-    .stat { font-size: 20px; font-family: 'Fraunces', serif; font-weight: 500; margin-top: 12px; }
-    .small { font-size: 13px; color: #83857A; margin-left: 8px; }
-    .header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #83857A; }
-    .foot { margin-top: 78px; font-style: italic; font-size: 16px; color: #83857A; text-align: center; }
     .hidden { display: none; }
+    .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; font-style: italic; color: #83857A; }
+    .header-right { text-align: right; font-size: 12px; }
+    .foot { margin-top: 78px; font-style: italic; font-size: 16px; color: #83857A; text-align: center; }
+    .editbtn { font-size: 13px; color: #55634F; background: rgba(111,127,115,0.13); border: none; border-radius: 20px; padding: 8px 18px; cursor: pointer; letter-spacing: 0.02em; }
+    .editbtn.on { background: #6F7F73; color: #fff; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <!-- Login Screen -->
-    <div id="authScreen">
-      <div class="subtitle">2026 · your own pace</div>
-      <h1 class="title">The second half</h1>
-      <p class="note">Track the small things. Sleep, weight, movement, routines — all in one quiet place.</p>
-      <div class="panel">
-        <h2 style="font-family: 'Fraunces', serif; font-size: 20px; margin-bottom: 14px;">Log in</h2>
-        <form id="authForm">
-          <input type="email" id="emailInput" placeholder="your email" required />
-          <button type="submit" class="btn">send login link</button>
-        </form>
-        <div id="authMsg" class="msg hidden"></div>
-      </div>
-    </div>
+  <div id="root"></div>
 
-    <!-- App Screen -->
-    <div id="appScreen" class="hidden">
-      <div class="header">
-        <div class="subtitle">2026 · your own pace</div>
-        <div style="text-align: right;">
-          <div id="userEmail"></div>
-          <button id="logoutBtn" class="link">log out</button>
-        </div>
-      </div>
-      <h1 class="title">The second half</h1>
-      <p class="note">Everything is saved to the cloud.</p>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
 
-      <!-- Body Section -->
-      <section class="section">
-        <div class="shead">Body</div>
-        
-        <!-- Sleep -->
-        <div class="card">
-          <div><strong>Sleep</strong></div>
-          <div id="sleepStatus" style="font-style: italic; font-size: 15px; color: #83857A; margin-top: 8px;">when did you sleep?</div>
-          <div class="row">
-            <span style="font-size: 12px; color: #83857A;">bed</span>
-            <input type="time" id="bedInput" />
-            <span style="font-size: 12px; color: #83857A;">wake</span>
-            <input type="time" id="wakeInput" />
-            <button class="mini" onclick="saveSleep()">save</button>
-          </div>
-        </div>
+    const SUPABASE_URL = 'https://qagmx1ivtxpzpfvfozdk.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_1XZzc1JV8CPujd1zhcLcdQ_Hn6z646c';
+    
+    let supabase;
+    try {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } catch (e) {
+      console.error('Supabase init error:', e);
+    }
 
-        <!-- Weight -->
-        <div class="card">
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <strong style="flex: 1;">Weight</strong>
-            <input type="text" id="weightUnit" value="kg" style="width: 60px;" />
-          </div>
-          <div id="weightStatus" style="font-style: italic; font-size: 15px; color: #83857A; margin-top: 8px;">morning & evening</div>
-          <div class="row">
-            <input type="number" step="0.1" id="weightAm" placeholder="am" style="width: 80px;" />
-            <input type="number" step="0.1" id="weightPm" placeholder="pm" style="width: 80px;" />
-            <button class="mini" onclick="saveWeight()">save</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Activities -->
-      <section class="section">
-        <div class="shead">Movement</div>
-        <div id="activitiesList"></div>
-        <div class="card" style="border-bottom: none;">
-          <button class="mini" onclick="addActivity()">+ activity</button>
-        </div>
-      </section>
-
-      <!-- Routines -->
-      <section class="section">
-        <div class="shead">Routines</div>
-        <div id="routinesList"></div>
-        <div class="card" style="border-bottom: none;">
-          <button class="mini" onclick="addRoutine()">+ routine</button>
-        </div>
-      </section>
-
-      <p class="foot">Steady is enough. Set aside what you need to; come back when you're ready.</p>
-    </div>
-  </div>
-
-  <script>
     const uid = () => Math.random().toString(36).slice(2, 9);
     const todayKey = () => {
       const d = new Date();
@@ -125,188 +68,325 @@
     };
 
     const SEED = {
+      sectionOrder: ['body', 'savings', 'movement', 'projects', 'routines'],
       sleep: { entries: [] },
       weight: { unit: 'kg', entries: [] },
+      savings: { tx: [] },
       activities: [
         { id: uid(), name: 'Yoga', logs: [] },
         { id: uid(), name: 'Walk', logs: [] },
       ],
+      projects: [
+        { id: uid(), name: 'Portfolio', stages: ['Gather', 'Design', 'Polish'], current: 0, sessions: [] },
+      ],
       routines: [
-        { id: uid(), name: 'Water plants', history: [] },
+        { id: uid(), name: 'Water plants', cadence: 'weekly', history: [] },
       ],
     };
 
-    let data = localStorage.getItem('hy_data') ? JSON.parse(localStorage.getItem('hy_data')) : SEED;
-
-    const saveData = () => localStorage.setItem('hy_data', JSON.stringify(data));
-    const loadData = () => { data = localStorage.getItem('hy_data') ? JSON.parse(localStorage.getItem('hy_data')) : SEED; renderApp(); };
-
-    const showAuth = () => {
-      document.getElementById('authScreen').classList.remove('hidden');
-      document.getElementById('appScreen').classList.add('hidden');
-      const saved = localStorage.getItem('hy_email');
-      if (saved) document.getElementById('emailInput').value = saved;
-    };
-
-    const showApp = (email) => {
-      document.getElementById('authScreen').classList.add('hidden');
-      document.getElementById('appScreen').classList.remove('hidden');
-      document.getElementById('userEmail').textContent = email;
-      loadData();
-    };
-
-    document.getElementById('authForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('emailInput').value;
-      const msg = document.getElementById('authMsg');
-      msg.classList.remove('hidden');
-      msg.textContent = 'sending…';
-      localStorage.setItem('hy_email', email);
-      msg.classList.add('ok');
-      msg.textContent = 'check email for login link. for demo, just click "continue" without email.';
-      setTimeout(() => showApp(email), 2000);
-    });
-
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('hy_email');
-      showAuth();
-    });
-
-    const saveSleep = () => {
-      const bed = document.getElementById('bedInput').value;
-      const wake = document.getElementById('wakeInput').value;
-      if (!bed && !wake) return;
+    const SleepCard = ({ sleep, onChange }) => {
+      const [bed, setBed] = useState('');
+      const [wake, setWake] = useState('');
       const today = todayKey();
-      data.sleep.entries = data.sleep.entries.filter(e => e.date !== today);
-      data.sleep.entries.push({ date: today, bed, wake });
-      saveData();
-      document.getElementById('sleepStatus').textContent = `${bed} → ${wake}`;
-      document.getElementById('bedInput').value = '';
-      document.getElementById('wakeInput').value = '';
+      const te = sleep.entries.find(e => e.date === today);
+      const save = () => {
+        if (!bed && !wake) return;
+        const entries = sleep.entries.filter(e => e.date !== today);
+        entries.push({ date: today, bed: bed || '', wake: wake || '' });
+        onChange({ ...sleep, entries });
+        setBed(''); setWake('');
+      };
+      return (
+        <div className="card">
+          <div><strong>Sleep</strong></div>
+          <div style={{ fontStyle: 'italic', fontSize: 15, color: '#83857A', marginTop: 8 }}>
+            {te ? `${te.bed} → ${te.wake}` : 'when did you sleep?'}
+          </div>
+          <div className="row">
+            <span style={{ fontSize: 12, color: '#83857A' }}>bed</span>
+            <input type="time" value={bed} onChange={e => setBed(e.target.value)} />
+            <span style={{ fontSize: 12, color: '#83857A' }}>wake</span>
+            <input type="time" value={wake} onChange={e => setWake(e.target.value)} />
+            <button className="mini" onClick={save}>save</button>
+          </div>
+        </div>
+      );
     };
 
-    const saveWeight = () => {
-      const am = document.getElementById('weightAm').value;
-      const pm = document.getElementById('weightPm').value;
-      if (!am && !pm) return;
+    const WeightCard = ({ weight, onChange }) => {
+      const [am, setAm] = useState('');
+      const [pm, setPm] = useState('');
       const today = todayKey();
-      data.weight.unit = document.getElementById('weightUnit').value;
-      data.weight.entries = data.weight.entries.filter(e => e.date !== today);
-      data.weight.entries.push({ date: today, am, pm });
-      saveData();
-      document.getElementById('weightStatus').textContent = `${am} / ${pm}`;
-      document.getElementById('weightAm').value = '';
-      document.getElementById('weightPm').value = '';
+      const te = weight.entries.find(e => e.date === today);
+      const u = weight.unit || 'kg';
+      const save = () => {
+        if (!am && !pm) return;
+        const entries = weight.entries.filter(e => e.date !== today);
+        entries.push({ date: today, am: am ? parseFloat(am) : null, pm: pm ? parseFloat(pm) : null });
+        onChange({ ...weight, entries, unit: u });
+        setAm(''); setPm('');
+      };
+      return (
+        <div className="card">
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <strong style={{ flex: 1 }}>Weight</strong>
+            <input type="text" value={u} onChange={e => onChange({ ...weight, unit: e.target.value })} style={{ width: 60 }} />
+          </div>
+          <div style={{ fontStyle: 'italic', fontSize: 15, color: '#83857A', marginTop: 8 }}>
+            {te ? `${te.am} / ${te.pm}` : 'morning & evening'}
+          </div>
+          <div className="row">
+            <input type="number" step="0.1" placeholder="am" value={am} onChange={e => setAm(e.target.value)} style={{ width: 80 }} />
+            <input type="number" step="0.1" placeholder="pm" value={pm} onChange={e => setPm(e.target.value)} style={{ width: 80 }} />
+            <button className="mini" onClick={save}>save</button>
+          </div>
+        </div>
+      );
     };
 
-    const addActivity = () => {
-      data.activities.push({ id: uid(), name: `New ${data.activities.length + 1}`, logs: [] });
-      saveData();
-      renderActivities();
+    const SavingsCard = ({ savings, onChange }) => {
+      const [cg, setCg] = useState('');
+      const [cs, setCs] = useState('');
+      const [cb, setCb] = useState('');
+      const [purpose, setPurpose] = useState('');
+      const bal = savings.tx.reduce((s, t) => s + (t.type === 'deposit' ? t.amount : -t.amount), 0);
+      const deposit = () => {
+        const g = +cg || 0, s = +cs || 0, b = +cb || 0, amount = g * 1000 + s * 500 + b * 100;
+        if (amount <= 0) return;
+        onChange({ ...savings, tx: [...savings.tx, { id: uid(), type: 'deposit', amount, coins: { g, s, b }, purpose, date: todayKey() }] });
+        setCg(''); setCs(''); setCb(''); setPurpose('');
+      };
+      const withdraw = () => {
+        const g = +cg || 0, s = +cs || 0, b = +cb || 0, amount = g * 1000 + s * 500 + b * 100;
+        if (amount <= 0 || !purpose || amount > bal) return;
+        onChange({ ...savings, tx: [...savings.tx, { id: uid(), type: 'withdraw', amount, coins: { g, s, b }, purpose, date: todayKey() }] });
+        setCg(''); setCs(''); setCb(''); setPurpose('');
+      };
+      return (
+        <div className="card">
+          <div><strong>Savings</strong></div>
+          <div className="stat" style={{ fontSize: 26 }}>$<span>{bal}</span></div>
+          <div className="row">
+            <span style={{ fontSize: 12, color: '#83857A' }}>Coins</span>
+            <span style={{ color: '#B9985E' }}>●</span><input type="number" value={cg} onChange={e => setCg(e.target.value)} placeholder="0" style={{ width: 60 }} />
+            <span style={{ color: '#9AA6B0' }}>●</span><input type="number" value={cs} onChange={e => setCs(e.target.value)} placeholder="0" style={{ width: 60 }} />
+            <span style={{ color: '#A9744F' }}>●</span><input type="number" value={cb} onChange={e => setCb(e.target.value)} placeholder="0" style={{ width: 60 }} />
+          </div>
+          <div className="row">
+            <span style={{ fontSize: 12, color: '#83857A' }}>For</span>
+            <input type="text" value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="what it's for" style={{ flex: 1 }} />
+          </div>
+          <div className="row">
+            <button className="mini" onClick={deposit}>Deposit</button>
+            <button className="mini" onClick={withdraw}>Withdraw</button>
+          </div>
+        </div>
+      );
     };
 
-    const renderActivities = () => {
-      const list = document.getElementById('activitiesList');
-      list.innerHTML = data.activities.map(a => {
-        const totalMin = a.logs.reduce((s, l) => s + (l.minutes || 0), 0);
-        const days = new Set(a.logs.map(l => l.date)).size;
-        return `
-          <div class="card">
-            <div style="display: flex; gap: 10px;">
-              <input type="text" value="${a.name}" onchange="updateActivity('${a.id}', this.value)" style="flex: 1;" />
-              <button class="link" onclick="removeActivity('${a.id}')">✕</button>
-            </div>
-            <div class="stat">${days}<span class="small">days</span> · ${Math.floor(totalMin/60)}h ${totalMin%60}m<span class="small">total</span></div>
-            <div class="row">
-              <input type="number" id="actMin${a.id}" placeholder="min" style="width: 80px;" />
-              <button class="mini" onclick="logActivity('${a.id}')">log</button>
+    const ActivityCard = ({ act, onChange, onRemove }) => {
+      const [mins, setMins] = useState('');
+      const totalMin = act.logs.reduce((s, l) => s + (l.minutes || 0), 0);
+      const days = new Set(act.logs.map(l => l.date)).size;
+      const log = () => {
+        const m = mins ? parseFloat(mins) : 0;
+        onChange({ ...act, logs: [...act.logs, { id: uid(), date: todayKey(), minutes: m }] });
+        setMins('');
+      };
+      return (
+        <div className="card">
+          <div style={{ display: 'flex', gap: 10 }}>
+            <input className="cname" value={act.name} onChange={e => onChange({ ...act, name: e.target.value })} />
+            <button className="link" onClick={onRemove}>✕</button>
+          </div>
+          <div className="stat">{days}<span className="small">days</span> · {Math.floor(totalMin/60)}h {totalMin%60}m<span className="small">total</span></div>
+          <div className="row">
+            <input type="number" placeholder="min" value={mins} onChange={e => setMins(e.target.value)} style={{ width: 80 }} />
+            <button className="mini" onClick={log}>log</button>
+          </div>
+        </div>
+      );
+    };
+
+    const ProjectCard = ({ proj, onChange, onRemove }) => {
+      const [mins, setMins] = useState('');
+      const totalMin = proj.sessions.reduce((s, x) => s + (x.minutes || 0), 0);
+      const pct = proj.stages.length > 0 ? Math.min(proj.current / proj.stages.length, 1) : 0;
+      const log = () => {
+        const m = mins ? parseFloat(mins) : 0;
+        onChange({ ...proj, sessions: [...proj.sessions, { id: uid(), date: todayKey(), minutes: m }] });
+        setMins('');
+      };
+      return (
+        <div className="card">
+          <div style={{ display: 'flex', gap: 10 }}>
+            <input className="cname" value={proj.name} onChange={e => onChange({ ...proj, name: e.target.value })} />
+            <button className="link" onClick={onRemove}>✕</button>
+          </div>
+          <div style={{ height: 6, background: '#D4D4CA', borderRadius: 6, marginTop: 12, overflow: 'hidden' }}>
+            <div style={{ height: '100%', background: '#6F7F73', width: `${pct * 100}%`, transition: 'width 0.35s' }}></div>
+          </div>
+          <div style={{ fontStyle: 'italic', fontSize: 14, color: '#83857A', marginTop: 8 }}>
+            Stage {proj.current + 1} of {proj.stages.length} · {Math.floor(totalMin/60)}h {totalMin%60}m
+          </div>
+          <div className="row">
+            <button className="mini" onClick={() => proj.current < proj.stages.length && onChange({ ...proj, current: proj.current + 1 })}>next</button>
+            <input type="number" placeholder="min" value={mins} onChange={e => setMins(e.target.value)} style={{ width: 80 }} />
+            <button className="mini" onClick={log}>log</button>
+          </div>
+        </div>
+      );
+    };
+
+    const RoutineRow = ({ routine, onChange, onRemove }) => {
+      const today = todayKey();
+      const done = routine.history.includes(today);
+      return (
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #D4D4CA', flexWrap: 'wrap' }}>
+          <input className="cname" value={routine.name} onChange={e => onChange({ ...routine, name: e.target.value })} style={{ flex: 1 }} />
+          <button className="mini" onClick={() => !done && onChange({ ...routine, history: [...routine.history, today] })}>{done ? '✓' : 'mark'}</button>
+          <button className="link" onClick={onRemove}>✕</button>
+        </div>
+      );
+    };
+
+    function App() {
+      const [user, setUser] = useState(null);
+      const [data, setData] = useState(null);
+      const [loaded, setLoaded] = useState(false);
+      const [email, setEmail] = useState('');
+      const [msg, setMsg] = useState('');
+
+      useEffect(() => {
+        const saved = localStorage.getItem('hy_email');
+        if (saved) setEmail(saved);
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (session?.user) {
+            setUser(session.user);
+            localStorage.setItem('hy_email', session.user.email);
+            try {
+              const { data: rows } = await supabase.from('tracking_data').select('data').eq('user_id', session.user.id).single();
+              setData({ ...SEED, ...rows?.data });
+            } catch {
+              setData(SEED);
+            }
+          } else {
+            setUser(null);
+            setData(null);
+          }
+          setLoaded(true);
+        });
+
+        return () => subscription?.unsubscribe();
+      }, []);
+
+      useEffect(() => {
+        if (!loaded || !data || !user) return;
+        const t = setTimeout(async () => {
+          try {
+            await supabase.from('tracking_data').upsert({ user_id: user.id, data, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+          } catch (e) { }
+        }, 500);
+        return () => clearTimeout(t);
+      }, [data, loaded, user]);
+
+      const sendLink = async (e) => {
+        e.preventDefault();
+        if (!email) { setMsg('enter email'); return; }
+        setMsg('sending…');
+        const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+        if (error) setMsg(`error: ${error.message}`);
+        else { setMsg('check email for login link'); setEmail(''); }
+      };
+
+      if (!loaded) return <div className="loading">gathering your pages…</div>;
+
+      if (!user) {
+        return (
+          <div className="wrap">
+            <div className="subtitle">2026 · your own pace</div>
+            <h1 className="title">The second half</h1>
+            <p className="note">Track the small things. Sleep, weight, movement, savings, routines, projects — all in one quiet place.</p>
+            <div className="panel">
+              <h2>Log in</h2>
+              <form onSubmit={sendLink}>
+                <input type="email" placeholder="your email" value={email} onChange={e => setEmail(e.target.value)} />
+                <button type="submit" className="mini">send login link</button>
+              </form>
+              {msg && <div className={`msg ${msg.includes('error') ? 'err' : 'ok'}`}>{msg}</div>}
             </div>
           </div>
-        `;
-      }).join('');
-    };
-
-    const updateActivity = (id, name) => {
-      const act = data.activities.find(a => a.id === id);
-      if (act) { act.name = name; saveData(); }
-    };
-
-    const removeActivity = (id) => {
-      data.activities = data.activities.filter(a => a.id !== id);
-      saveData();
-      renderActivities();
-    };
-
-    const logActivity = (id) => {
-      const mins = parseFloat(document.getElementById(`actMin${id}`).value);
-      if (!mins) return;
-      const act = data.activities.find(a => a.id === id);
-      if (act) {
-        act.logs.push({ id: uid(), date: todayKey(), minutes: mins });
-        saveData();
-        document.getElementById(`actMin${id}`).value = '';
-        renderActivities();
+        );
       }
-    };
 
-    const addRoutine = () => {
-      data.routines.push({ id: uid(), name: `New ${data.routines.length + 1}`, history: [] });
-      saveData();
-      renderRoutines();
-    };
+      const update = (coll, id, patch) => setData(p => ({ ...p, [coll]: p[coll].map(x => (x.id === id ? patch : x)) }));
+      const remove = (coll, id) => setData(p => ({ ...p, [coll]: p[coll].filter(x => x.id !== id) }));
 
-    const renderRoutines = () => {
-      const list = document.getElementById('routinesList');
-      list.innerHTML = data.routines.map(r => {
-        const today = todayKey();
-        const done = r.history.includes(today);
-        return `
-          <div class="card">
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <input type="text" value="${r.name}" onchange="updateRoutine('${r.id}', this.value)" style="flex: 1;" />
-              <button class="mini" onclick="markRoutine('${r.id}')">${done ? '✓ done' : 'mark'}</button>
-              <button class="link" onclick="removeRoutine('${r.id}')">✕</button>
+      return (
+        <div className="wrap">
+          <div className="topbar">
+            <div className="subtitle">2026 · your own pace</div>
+            <div className="header-right">
+              <div>{user.email}</div>
+              <button className="link" onClick={() => supabase.auth.signOut()}>log out</button>
             </div>
           </div>
-        `;
-      }).join('');
-    };
+          <h1 className="title">The second half</h1>
+          <p className="note">Everything is saved to the cloud.</p>
 
-    const updateRoutine = (id, name) => {
-      const r = data.routines.find(x => x.id === id);
-      if (r) { r.name = name; saveData(); }
-    };
+          <section className="section">
+            <div className="shead">Body</div>
+            {data && (
+              <>
+                <SleepCard sleep={data.sleep} onChange={v => setData({ ...data, sleep: v })} />
+                <WeightCard weight={data.weight} onChange={v => setData({ ...data, weight: v })} />
+              </>
+            )}
+          </section>
 
-    const markRoutine = (id) => {
-      const r = data.routines.find(x => x.id === id);
-      if (r) {
-        const today = todayKey();
-        if (!r.history.includes(today)) r.history.push(today);
-        saveData();
-        renderRoutines();
-      }
-    };
+          <section className="section">
+            <div className="shead">Savings</div>
+            {data && <SavingsCard savings={data.savings} onChange={v => setData({ ...data, savings: v })} />}
+          </section>
 
-    const removeRoutine = (id) => {
-      data.routines = data.routines.filter(r => r.id !== id);
-      saveData();
-      renderRoutines();
-    };
+          <section className="section">
+            <div className="shead">Movement</div>
+            {data && data.activities.map(a => (
+              <ActivityCard key={a.id} act={a} onChange={v => update('activities', a.id, v)} onRemove={() => remove('activities', a.id)} />
+            ))}
+            <div className="card" style={{ borderBottom: 'none' }}>
+              <button className="mini" onClick={() => setData({ ...data, activities: [...data.activities, { id: uid(), name: 'New activity', logs: [] }] })}>+ activity</button>
+            </div>
+          </section>
 
-    const renderApp = () => {
-      renderActivities();
-      renderRoutines();
-      const today = todayKey();
-      const te = data.sleep.entries.find(e => e.date === today);
-      if (te) document.getElementById('sleepStatus').textContent = `${te.bed} → ${te.wake}`;
-      const we = data.weight.entries.find(e => e.date === today);
-      if (we) document.getElementById('weightStatus').textContent = `${we.am} / ${we.pm}`;
-    };
+          <section className="section">
+            <div className="shead">Projects</div>
+            {data && data.projects.map(p => (
+              <ProjectCard key={p.id} proj={p} onChange={v => update('projects', p.id, v)} onRemove={() => remove('projects', p.id)} />
+            ))}
+            <div className="card" style={{ borderBottom: 'none' }}>
+              <button className="mini" onClick={() => setData({ ...data, projects: [...data.projects, { id: uid(), name: 'New project', stages: ['Start', 'Middle', 'End'], current: 0, sessions: [] }] })}>+ project</button>
+            </div>
+          </section>
 
-    // Init
-    const saved = localStorage.getItem('hy_email');
-    if (saved) showApp(saved);
-    else showAuth();
+          <section className="section">
+            <div className="shead">Routines</div>
+            {data && data.routines.map(r => (
+              <RoutineRow key={r.id} routine={r} onChange={v => update('routines', r.id, v)} onRemove={() => remove('routines', r.id)} />
+            ))}
+            <div className="card" style={{ borderBottom: 'none' }}>
+              <button className="mini" onClick={() => setData({ ...data, routines: [...data.routines, { id: uid(), name: 'New routine', cadence: 'weekly', history: [] }] })}>+ routine</button>
+            </div>
+          </section>
+
+          <p className="foot">Steady is enough. Set aside what you need to; come back when you're ready.</p>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
   </script>
 </body>
 </html>
