@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Second Half</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500&family=Inter:wght@400;500&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -41,25 +41,18 @@
     .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; font-style: italic; color: #83857A; }
     .header-right { text-align: right; font-size: 12px; }
     .foot { margin-top: 78px; font-style: italic; font-size: 16px; color: #83857A; text-align: center; }
-    .editbtn { font-size: 13px; color: #55634F; background: rgba(111,127,115,0.13); border: none; border-radius: 20px; padding: 8px 18px; cursor: pointer; letter-spacing: 0.02em; }
-    .editbtn.on { background: #6F7F73; color: #fff; }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useCallback } = React;
+    const { useState, useEffect } = React;
 
     const SUPABASE_URL = 'https://qagmx1ivtxpzpfvfozdk.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_1XZzc1JV8CPujd1zhcLcdQ_Hn6z646c';
     
-    let supabase;
-    try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    } catch (e) {
-      console.error('Supabase init error:', e);
-    }
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const uid = () => Math.random().toString(36).slice(2, 9);
     const todayKey = () => {
@@ -68,7 +61,6 @@
     };
 
     const SEED = {
-      sectionOrder: ['body', 'savings', 'movement', 'projects', 'routines'],
       sleep: { entries: [] },
       weight: { unit: 'kg', entries: [] },
       savings: { tx: [] },
