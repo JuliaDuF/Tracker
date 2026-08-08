@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Second Half</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/recharts@2.10.0/dist/Recharts.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,opsz@1,6..72&family=Inter:wght@400;500&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --paper: #E7E7E0;
+      --surface: #F1F1EB;
+      --ink: #2A2B26;
+      --muted: #83857A;
+      --line: #D4D4CA;
+      --accent: #6F7F73;
+      --accent-ink: #55634F;
+      --accent-soft: rgba(111, 127, 115, 0.13);
+      --warn: #A8735B;
+      --gold: #B9985E;
+      --silver: #9AA6B0;
+      --bronze: #A9744F;
+      --f-display: 'Fraunces', Georgia, serif;
+      --f-note: 'Newsreader', Georgia, serif;
+      --f-body: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    html, body { min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--f-body); -webkit-font-smoothing: antialiased; }
+    #root { min-height: 100vh; }
+    .hy-wrap { max-width: 680px; margin: 0 auto; padding: 56px 26px 128px; }
+    .hy-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+    .hy-eyebrow { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+    .hy-title { font-family: var(--f-display); font-weight: 500; font-size: clamp(32px, 7vw, 46px); line-height: 1.04; letter-spacing: -0.01em; margin: 14px 0 0; }
+    .hy-note { font-family: var(--f-note); font-style: italic; font-size: 19px; color: var(--muted); margin: 18px 0 0; line-height: 1.5; max-width: 44ch; }
+    .hy-authpanel { margin-top: 56px; padding: 28px; background: var(--surface); border-radius: 13px; display: flex; flex-direction: column; gap: 14px; max-width: 400px; }
+    .hy-authpanel h2 { font-family: var(--f-display); font-weight: 500; font-size: 22px; margin: 0 0 8px; }
+    .hy-authpanel form { display: flex; flex-direction: column; gap: 10px; }
+    .hy-input { font-size: 16px; font-family: inherit; color: var(--ink); background: transparent; border: none; border-bottom: 1px solid var(--line); padding: 8px 0; }
+    .hy-input::placeholder { color: var(--muted); }
+    .hy-input:focus { outline: none; border-bottom-color: var(--accent); }
+    .hy-mini { font-size: 14px; font-family: inherit; color: var(--accent-ink); background: var(--accent-soft); border: none; border-radius: 8px; padding: 8px 13px; cursor: pointer; transition: background 0.15s; }
+    .hy-mini:hover { background: rgba(111, 127, 115, 0.22); }
+    .hy-link { background: none; border: none; color: var(--muted); font-size: 12.5px; letter-spacing: 0.03em; cursor: pointer; padding: 0; font-family: inherit; }
+    .hy-link:hover { color: var(--ink); }
+    .hy-authinfo { font-size: 13px; color: var(--muted); }
+    .hy-section { margin-top: 56px; }
+    .hy-shead { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 10px; }
+    .hy-h2 { font-family: var(--f-display); font-weight: 500; font-size: 22px; letter-spacing: -0.01em; }
+    .hy-meta { font-size: 12px; letter-spacing: 0.03em; color: var(--muted); }
+    .hy-card { padding: 22px 0; border-bottom: 1px solid var(--line); }
+    .hy-card-head { display: flex; align-items: center; gap: 10px; }
+    .hy-cname { flex: 1 1 auto; font-family: var(--f-display); font-weight: 500; font-size: 18px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; }
+    .hy-cname:focus { outline: none; border-bottom-color: var(--accent); }
+    .hy-figure { font-family: var(--f-display); font-weight: 500; font-size: 24px; letter-spacing: -0.01em; margin-top: 12px; }
+    .hy-figure small { font-size: 14px; color: var(--muted); font-family: var(--f-body); font-weight: 400; margin-left: 7px; }
+    .hy-bar { height: 6px; background: var(--line); border-radius: 6px; overflow: hidden; margin: 10px 0; }
+    .hy-bar-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.35s ease; }
+    .hy-pace { font-family: var(--f-note); font-style: italic; font-size: 15px; color: var(--muted); line-height: 1.45; }
+    .hy-pace b { color: var(--accent-ink); font-weight: 400; font-style: normal; }
+    .hy-chips { display: flex; gap: 7px; flex-wrap: wrap; margin: 12px 0 6px; }
+    .hy-chip { font-family: inherit; font-size: 12px; padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+    .hy-chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+    .hy-chart { margin-top: 8px; }
+    .hy-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .hy-num, .hy-date, .hy-sel, .hy-text, .hy-time { font-family: inherit; font-size: 14px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+    .hy-num { width: 84px; }
+    .hy-text { flex: 1 1 120px; min-width: 0; }
+    .hy-lab { font-size: 12px; color: var(--muted); }
+    .hy-panel { margin-top: 14px; padding: 15px; background: var(--surface); border-radius: 11px; display: flex; flex-direction: column; gap: 11px; }
+    .hy-field { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+    .hy-field label { min-width: 64px; }
+    .hy-quick { margin-top: 26px; }
+    .hy-quickbox { display: flex; gap: 10px; align-items: center; }
+    .hy-qinput { flex: 1 1 auto; font-family: inherit; font-size: 16px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; }
+    .hy-qinput::placeholder { color: var(--muted); }
+    .hy-qinput:focus { outline: none; border-color: var(--accent); }
+    .hy-qfb { font-size: 13px; margin-top: 9px; }
+    .hy-qfb.ok { color: var(--accent-ink); }
+    .hy-qfb.err { color: var(--warn); }
+    .hy-qhint { font-size: 12.5px; color: var(--muted); margin-top: 9px; line-height: 1.4; }
+    .hy-loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--muted); font-family: var(--f-note); font-style: italic; font-size: 18px; }
+    .hy-foot { margin-top: 78px; font-family: var(--f-note); font-style: italic; font-size: 16px; color: var(--muted); text-align: center; }
+    .hy-empty { font-family: var(--f-note); font-style: italic; color: var(--muted); font-size: 15px; padding: 18px 0; }
+    .paused-card { opacity: 0.5; }
+    .hy-pausebadge { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); padding: 2px 8px; border-radius: 20px; }
+    .hy-break { display: flex; align-items: center; gap: 10px; margin: 9px 0; font-size: 13px; }
+    .hy-break .nm { flex: 0 0 96px; color: var(--ink); }
+    .hy-break .track { flex: 1 1 auto; height: 7px; background: var(--line); border-radius: 6px; overflow: hidden; }
+    .hy-break .fill { height: 100%; background: var(--accent); border-radius: 6px; }
+    .hy-break .val { flex: 0 0 auto; color: var(--muted); width: 64px; text-align: right; }
+    .hy-routine { display: flex; align-items: center; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    .hy-rname { flex: 1 1 150px; font-size: 16px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; }
+    .hy-rname:focus { outline: none; border-bottom-color: var(--accent); }
+    .hy-status { font-size: 13px; color: var(--muted); white-space: nowrap; }
+    .hy-status.warn { color: var(--warn); }
+    .hy-status.ok { color: var(--accent-ink); }
+    .hy-group { border-bottom: 1px solid var(--line); }
+    .hy-group-head { display: flex; align-items: center; gap: 10px; padding: 15px 0; }
+    .hy-disc { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; }
+    .hy-group-items { padding-left: 16px; border-left: 2px solid var(--line); margin: 0 0 14px 6px; }
+    .hy-group-items .hy-routine { border-bottom: 1px solid var(--line); }
+    .hy-x { background: none; border: none; color: transparent; cursor: pointer; font-size: 14px; padding: 4px; transition: color 0.15s; }
+    .hy-card:hover .hy-x, .hy-routine:hover .hy-x { color: var(--muted); }
+    .hy-x:hover { color: var(--ink); }
+    .hy-entry { display: flex; gap: 12px; font-size: 13px; color: var(--muted); padding: 5px 0; }
+    .hy-entry b { color: var(--ink); font-weight: 500; min-width: 52px; }
+    .hy-hist { margin-top: 12px; }
+    .hy-due { margin-top: 28px; padding: 15px 17px; background: var(--surface); border: 1px solid var(--line); border-radius: 13px; }
+    .hy-due h3 { font-family: var(--f-display); font-weight: 500; font-size: 14px; margin: 0 0 7px; }
+    .hy-due-item { font-size: 13px; color: var(--muted); padding: 3px 0; }
+    .hy-due-item b { color: var(--warn); font-weight: 500; }
+    .hy-editbtn { font-family: inherit; font-size: 13px; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid transparent; border-radius: 20px; padding: 8px 18px; cursor: pointer; letter-spacing: 0.02em; }
+< truncated lines 117-403 >
+      const [authMsg, setAuthMsg] = useState('');
+      const [actDraft, setActDraft] = useState('');
+
+      useEffect(() => {
+        const savedEmail = localStorage.getItem('hy_email');
+        if (savedEmail) setEmail(savedEmail);
+        
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (session?.user) {
+            setUser(session.user);
+            localStorage.setItem('hy_email', session.user.email);
+            try {
+              const { data: rows } = await supabase.from('tracking_data').select('data').eq('user_id', session.user.id).single();
+              setData(normalize(rows?.data || SEED));
+            } catch (e) {
+              setData(normalize(SEED));
+            }
+          } else {
+            setUser(null);
+            setData(null);
+          }
+          setLoaded(true);
+        });
+        return () => subscription?.unsubscribe();
+      }, []);
+
+      useEffect(() => {
+        if (!loaded || !data || !user) return;
+        const t = setTimeout(async () => {
+          try {
+            await supabase.from('tracking_data').upsert({ user_id: user.id, data, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+          } catch (e) { }
+        }, 400);
+        return () => clearTimeout(t);
+      }, [data, loaded, user]);
+
+      const sendMagicLink = async (e) => {
+        e.preventDefault();
+        if (!email) { setAuthMsg('Enter your email.'); return; }
+        setAuthMsg('Sendingâ¦');
+        const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+        if (error) setAuthMsg(`Error: ${error.message}`);
+        else { setAuthMsg('Check your email for the login link'); setEmail(''); }
+      };
+
+      if (!loaded) return <div className="hy-loading">gathering your pagesâ¦</div>;
+
+      if (!user) {
+        return (
+          <div className="hy-wrap">
+            <header>
+              <div className="hy-eyebrow">2026 Â· your own pace</div>
+              <h1 className="hy-title">The second half</h1>
+              <p className="hy-note">Track the small things. Sleep, weight, movement, savings, routines, projects â all in one quiet place.</p>
+            </header>
+            <div className="hy-authpanel">
+              <h2>Log in with email</h2>
+              <form onSubmit={sendMagicLink}>
+                <input className="hy-input" type="email" placeholder="your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <button className="hy-mini" type="submit">Send login link</button>
+              </form>
+              {authMsg && <div className="hy-authinfo">{authMsg}</div>}
+            </div>
+          </div>
+        );
+      }
+
+      const update = (coll, id, patch) => setData((p) => ({ ...p, [coll]: p[coll].map((x) => (x.id === id ? patch : x)) }));
+      const remove = (coll, id) => setData((p) => ({ ...p, [coll]: p[coll].filter((x) => x.id !== id) }));
+      const addAct = () => { const n = actDraft.trim(); if (!n) return; setData((p) => ({ ...p, activities: [...p.activities, { id: uid(), name: n, hasGoal: false, goalKind: 'days', target: 0, deadline: '2026-12-31', defaultMin: 30, aliases: [], logs: [], paused: false }] })); setActDraft(''); };
+
+      return (
+        <div className="hy-wrap">
+          <header>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="hy-eyebrow">2026 Â· your own pace</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                {user.email} Â· <button className="hy-link" onClick={() => supabase.auth.signOut()}>log out</button>
+              </div>
+            </div>
+            <h1 className="hy-title">The second half</h1>
+            <p className="hy-note">Everything is saved to the cloud. Log from any device.</p>
+          </header>
+
+          <section className="hy-section">
+            <div className="hy-shead"><h2 className="hy-h2">Body</h2><span className="hy-meta">sleep &amp; weight</span></div>
+            {data && data.bodyOrder.map((k) => k === 'sleep' ? <SleepCard key="sleep" sleep={data.sleep} onChange={(v) => setData((p) => ({ ...p, sleep: v }))} /> : <WeightCard key="weight" weight={data.weight} onChange={(v) => setData((p) => ({ ...p, weight: v }))} />)}
+          </section>
+
+          <section className="hy-section">
+            <div className="hy-shead"><h2 className="hy-h2">Savings</h2><span className="hy-meta">a jar of coins</span></div>
+            {data && <SavingsCard savings={data.savings} onChange={(v) => setData((p) => ({ ...p, savings: v }))} />}
+          </section>
+
+          <section className="hy-section">
+            <div className="hy-shead"><h2 className="hy-h2">Movement</h2><span className="hy-meta">activities &amp; time</span></div>
+            {data && data.activities.map((a) => <ActivityCard key={a.id} act={a} onChange={(v) => update('activities', a.id, v)} onRemove={() => remove('activities', a.id)} />)}
+            <div className="hy-row"><input className="hy-input" placeholder="add an activityâ¦" value={actDraft} onChange={(e) => setActDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addAct()} /><button className="hy-mini" onClick={addAct}>add</button></div>
+          </section>
+
+          <section className="hy-section">
+            <div className="hy-shead"><h2 className="hy-h2">Routines</h2><span className="hy-meta">weekly, monthly, yearly</span></div>
+            {data && data.routines.map((e) => e.group ? <RoutineGroup key={e.id} group={e} onChange={(v) => update('routines', e.id, v)} onRemove={() => remove('routines', e.id)} /> : <RoutineRow key={e.id} routine={e} onChange={(v) => update('routines', e.id, v)} onRemove={() => remove('routines', e.id)} />)}
+          </section>
+
+          <p className="hy-foot">Steady is enough. Set aside what you need to; come back when you're ready.</p>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<HalfYear />);
+  </script>
+</body>
+</html>
