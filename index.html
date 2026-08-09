@@ -575,11 +575,16 @@
     function toggleSleepAdd() { sleepAdding = !sleepAdding; render(); }
     function updateSleepGoal(field, value) { data.sleep[field] = value; saveData(); }
     function renderSleepChart() {
-      const entries = [...data.sleep.entries].filter(e => sleepDurEntry(e) != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
+      const entries = [...data.sleep.entries].filter(e => e.bed || e.wake).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
       if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
-      const points = entries.map(e => ({ label: fmtShort(e.date), value: round1(sleepDurEntry(e)) }));
-      const avg = round1(points.reduce((s, p) => s + p.value, 0) / points.length);
-      return svgLineChart(points, { summary: `Avg ${avg}h over ${points.length} night${points.length === 1 ? '' : 's'}` });
+      const bedPoints = entries.filter(e => e.bed).map(e => ({ label: fmtShort(e.date), value: bedHourValue(e) }));
+      const wakePoints = entries.filter(e => e.wake).map(e => ({ label: fmtShort(e.date), value: toMin(e.wake) / 60 }));
+      const durs = entries.map(e => sleepDurEntry(e)).filter(v => v != null);
+      const avg = durs.length ? round1(durs.reduce((s, v) => s + v, 0) / durs.length) : null;
+      return svgLineChart([
+        { name: 'Bed', color: 'var(--warn)', points: bedPoints },
+        { name: 'Wake', color: 'var(--accent)', points: wakePoints },
+      ], { summary: avg != null ? `Avg ${avg}h over ${durs.length} night${durs.length === 1 ? '' : 's'}` : '' });
     }
 
     function renderWeightCard() {
@@ -651,27 +656,41 @@
     function renderWeightChart() {
       const entries = [...data.weight.entries].filter(e => e.am != null || e.pm != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
       if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
-      const points = entries.map(e => ({ label: fmtShort(e.date), value: e.am ?? e.pm }));
-      const diff = round1(points[points.length - 1].value - points[0].value);
-      return svgLineChart(points, { summary: `${diff >= 0 ? '+' : ''}${diff} kg over ${points.length} reading${points.length === 1 ? '' : 's'}` });
+      const amPoints = entries.filter(e => e.am != null).map(e => ({ label: fmtShort(e.date), value: e.am }));
+      const pmPoints = entries.filter(e => e.pm != null).map(e => ({ label: fmtShort(e.date), value: e.pm }));
+      return svgLineChart([
+        { name: 'Morning', color: 'var(--accent)', points: amPoints },
+        { name: 'Evening', color: 'var(--warn)', points: pmPoints },
+      ], { summary: `Last ${entries.length} day${entries.length === 1 ? '' : 's'}` });
     }
-    function svgLineChart(points, opts) {
+    function svgLineChart(seriesList, opts) {
       opts = opts || {};
-      const w = 300, h = 110, padL = 8, padR = 8, padT = 10, padB = 20;
-      const vals = points.map(p => p.value);
-      const minV = Math.min(...vals), maxV = Math.max(...vals);
+      const w = 300, h = 118, padL = 8, padR = 8, padT = 10, padB = 20;
+      const allVals = seriesList.flatMap(s => s.points.map(p => p.value));
+      if (allVals.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
+      const minV = Math.min(...allVals), maxV = Math.max(...allVals);
       const span = (maxV - minV) || 1;
+      const maxLen = Math.max(...seriesList.map(s => s.points.length));
       const innerW = w - padL - padR, innerH = h - padT - padB;
-      const stepX = points.length > 1 ? innerW / (points.length - 1) : 0;
-      const coords = points.map((p, i) => ({ x: padL + stepX * i, y: padT + innerH - ((p.value - minV) / span) * innerH }));
-      const path = coords.map((c, i) => (i === 0 ? 'M' : 'L') + c.x.toFixed(1) + ',' + c.y.toFixed(1)).join(' ');
-      const dots = coords.map(c => `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="2.5" fill="var(--accent)" />`).join('');
+      const stepX = maxLen > 1 ? innerW / (maxLen - 1) : 0;
+      let paths = '';
+      seriesList.forEach(s => {
+        if (s.points.length === 0) return;
+        const coords = s.points.map((p, i) => ({ x: padL + stepX * i, y: padT + innerH - ((p.value - minV) / span) * innerH }));
+        const path = coords.map((c, i) => (i === 0 ? 'M' : 'L') + c.x.toFixed(1) + ',' + c.y.toFixed(1)).join(' ');
+        paths += `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="1.6" />`;
+        paths += coords.map(c => `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="2.2" fill="${s.color}" />`).join('');
+      });
+      const firstSeries = seriesList.find(s => s.points.length > 0) || { points: [] };
+      const firstLabel = firstSeries.points[0] ? firstSeries.points[0].label : '';
+      const lastLabel = firstSeries.points.length ? firstSeries.points[firstSeries.points.length - 1].label : '';
+      const legend = seriesList.map(s => `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:14px;font-size:11px;color:var(--muted);"><span style="width:8px;height:8px;border-radius:50%;background:${s.color};display:inline-block;"></span>${s.name}</span>`).join('');
       return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" style="overflow:visible;margin-top:8px;">
-          <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="1.6" />
-          ${dots}
-          <text x="${padL}" y="${h - 4}" font-size="9" fill="var(--muted)">${points[0].label}</text>
-          <text x="${w - padR}" y="${h - 4}" font-size="9" fill="var(--muted)" text-anchor="end">${points[points.length - 1].label}</text>
+          ${paths}
+          <text x="${padL}" y="${h - 4}" font-size="9" fill="var(--muted)">${firstLabel}</text>
+          <text x="${w - padR}" y="${h - 4}" font-size="9" fill="var(--muted)" text-anchor="end">${lastLabel}</text>
         </svg>
+        <div style="margin-top:6px;">${legend}</div>
         <div class="pace" style="margin-top:2px;">${opts.summary || ''}</div>`;
     }
 
@@ -823,7 +842,7 @@
             <div class="field"><label>By</label><input type="date" value="${act.deadline}" onchange="updateActivity('${act.id}', 'deadline', this.value)" /></div>` : ''}
           </div>`;
         } else if (!act.paused) {
-          const fbHtml = activityJustLogged[act.id] ? `<div class="qfb ok" style="margin-top:8px;">Logged. <button class="link" onclick="quickUndo()">Undo</button></div>` : '';
+          const fbHtml = activityJustLogged[act.id] ? `<div class="qfb ok" style="margin-top:8px;">${activityJustLogged[act.id]} <button class="link" onclick="quickUndo()">Undo</button></div>` : '';
           html += `<div class="row">
             <input type="number" min="0" class="short" id="actMin${act.id}" oninput="actInputChanged('${act.id}')" /> <span style="font-size:12px;color:var(--muted);">min</span>
             <span style="font-size:12px;color:var(--muted);">or</span>
@@ -906,13 +925,16 @@
       const a = data.activities.find(x => x.id === id);
       if (!a) return;
       lastUndo = JSON.parse(JSON.stringify(data));
+      let msg;
       if (minsVal != null) {
         a.logs.push({ id: uid(), date: todayKey(), minutes: minsVal });
+        msg = `Logged ${fmtMinutes(minsVal)}.`;
       } else {
         const per = a.defaultMin || 0;
         for (let i = 0; i < sessVal; i++) a.logs.push({ id: uid(), date: todayKey(), minutes: per });
+        msg = `Logged ${sessVal} session${sessVal === 1 ? '' : 's'} (${fmtMinutes(per * sessVal)}).`;
       }
-      activityJustLogged[id] = true;
+      activityJustLogged[id] = msg;
       saveData();
     }
     function actInputChanged(id) {
@@ -921,7 +943,7 @@
       const btn = document.getElementById(`actAddBtn${id}`);
       if (btn) btn.style.display = (minVal || sessVal) ? 'inline-block' : 'none';
       if (activityJustLogged[id]) {
-        activityJustLogged[id] = false;
+        activityJustLogged[id] = null;
         const fb = document.getElementById(`actFb${id}`);
         if (fb) fb.innerHTML = '';
       }
@@ -1137,25 +1159,26 @@
         }
         return todayKey();
       }
+      // weekdays / monthdays / yearly: scan forward from the day AFTER the last
+      // completion (or from today if never done) and return the first matching
+      // date as-is — even if that lands in the past, so a missed occurrence stays
+      // pinned to its real date instead of jumping forward to today.
+      let d;
+      if (last) { d = parseDate(last); d.setDate(d.getDate() + 1); }
+      else { d = new Date(); d.setHours(0, 0, 0, 0); }
       if (sch.type === 'weekdays') {
         const days = (sch.weekdays && sch.weekdays.length) ? sch.weekdays : [1];
-        let d = new Date(); d.setHours(0, 0, 0, 0);
-        if (last === todayKey()) d.setDate(d.getDate() + 1);
-        for (let i = 0; i < 14; i++) { if (days.includes(d.getDay())) return dateKey(d); d.setDate(d.getDate() + 1); }
+        for (let i = 0; i < 400; i++) { if (days.includes(d.getDay())) return dateKey(d); d.setDate(d.getDate() + 1); }
         return dateKey(d);
       }
       if (sch.type === 'monthdays') {
         const days = (sch.monthdays && sch.monthdays.length) ? sch.monthdays : [1];
-        let d = new Date(); d.setHours(0, 0, 0, 0);
-        if (last === todayKey()) d.setDate(d.getDate() + 1);
-        for (let i = 0; i < 62; i++) { if (days.includes(d.getDate())) return dateKey(d); d.setDate(d.getDate() + 1); }
+        for (let i = 0; i < 400; i++) { if (days.includes(d.getDate())) return dateKey(d); d.setDate(d.getDate() + 1); }
         return dateKey(d);
       }
       if (sch.type === 'yearly') {
-        const now = new Date(); now.setHours(0, 0, 0, 0);
         const month = sch.yearMonth || 1, day = sch.yearDay || 1;
-        let d = new Date(now.getFullYear(), month - 1, day);
-        if (d < now || last === dateKey(d)) d = new Date(now.getFullYear() + 1, month - 1, day);
+        for (let i = 0; i < 800; i++) { if (d.getMonth() + 1 === month && d.getDate() === day) return dateKey(d); d.setDate(d.getDate() + 1); }
         return dateKey(d);
       }
       return todayKey();
@@ -1164,8 +1187,9 @@
       if (sch.type === 'date') return sch.onDate ? `On ${fmtShort(sch.onDate)}` : 'No date set';
       if (sch.type === 'interval') return `Every ${sch.intervalN || 1} ${sch.intervalUnit || 'weeks'}`;
       if (sch.type === 'weekdays') {
-        const names = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-        const list = (sch.weekdays || []).slice().sort().map(i => names[i]);
+        const names = { 1:'Mo', 2:'Tu', 3:'We', 4:'Th', 5:'Fr', 6:'Sa', 0:'Su' };
+        const order = [1,2,3,4,5,6,0];
+        const list = order.filter(i => (sch.weekdays || []).includes(i)).map(i => names[i]);
         return list.length ? `Every ${list.join(', ')}` : 'Pick weekdays';
       }
       if (sch.type === 'monthdays') {
@@ -1296,7 +1320,7 @@
           </div>`;
         } else if (sch.type === 'weekdays') {
           html += `<div class="chips">
-            ${['Su','Mo','Tu','We','Th','Fr','Sa'].map((lbl, i) => `<button class="chip${(sch.weekdays||[]).includes(i)?' on':''}" onclick="toggleRoutineWeekday('${routine.id}',${i}${gid})">${lbl}</button>`).join('')}
+            ${[['Mo',1],['Tu',2],['We',3],['Th',4],['Fr',5],['Sa',6],['Su',0]].map(([lbl, i]) => `<button class="chip${(sch.weekdays||[]).includes(i)?' on':''}" onclick="toggleRoutineWeekday('${routine.id}',${i}${gid})">${lbl}</button>`).join('')}
           </div>`;
         } else if (sch.type === 'monthdays') {
           html += `<input type="text" style="flex:1;" value="${(sch.monthdays||[]).join(', ')}" placeholder="e.g. 1, 15" onchange="updateRoutineMonthdays('${routine.id}', this.value${gid})" />`;
@@ -1313,9 +1337,12 @@
         html += `</div>`;
       }
       if (!paused) {
+        const doneToday = routine.history.includes(todayKey());
         html += `<div class="r-row3">
           <span class="status ${tone}">${status}</span>
-          <button class="mini" onclick="markRoutineDone('${routine.id}'${gid})">Done</button>
+          ${doneToday
+            ? `<span style="font-size:13px;color:var(--accent-ink);">Done ✓</span><button class="link" onclick="unmarkRoutineDone('${routine.id}'${gid})">Undo</button>`
+            : `<button class="mini" onclick="markRoutineDone('${routine.id}'${gid})">Done</button>`}
         </div>`;
       }
       html += `</div>`;
@@ -1412,6 +1439,13 @@
       else { const r = data.routines.find(x => x.id === id); if (r && !r.group) mark(r); }
       saveData();
     }
+    function unmarkRoutineDone(id, groupId) {
+      const today = todayKey();
+      const unmark = (it) => { it.history = it.history.filter(d => d !== today); };
+      if (groupId) { const g = data.routines.find(e => e.id === groupId); if (g) { const it = g.items.find(x => x.id === id); if (it) unmark(it); } }
+      else { const r = data.routines.find(x => x.id === id); if (r && !r.group) unmark(r); }
+      saveData();
+    }
     function toggleRoutinePause(id, groupId) {
       if (groupId) { const g = data.routines.find(e => e.id === groupId); if (g) { const it = g.items.find(x => x.id === id); if (it) it.paused = !it.paused; } }
       else { const r = data.routines.find(x => x.id === id); if (r && !r.group) r.paused = !r.paused; }
@@ -1420,37 +1454,30 @@
     function toggleGroupCollapse(id) { const g = data.routines.find(e => e.id === id && e.group); if (g) { g.collapsed = !g.collapsed; saveData(); } }
     function toggleGroupPause(id) { const g = data.routines.find(e => e.id === id && e.group); if (g) { g.paused = !g.paused; saveData(); } }
     function updateGroup(id, field, value) { const g = data.routines.find(e => e.id === id && e.group); if (g) { g[field] = value; saveData(); } }
-    function addRoutineToGroup(groupId, name, mode, cadence, dateVal) {
+    function addRoutineToGroup(groupId, r) {
       const g = data.routines.find(e => e.id === groupId && e.group);
       if (!g) return;
-      const r = leaf(name, cadence);
-      r.mode = mode;
-      if (mode === 'date') r.nextDate = dateVal || null;
       g.items.push(r);
       saveData();
     }
+    let modalWeekdaySelection = [];
     function openAddRoutineModal() {
       const groupList = data.routines.filter(e => e.group);
+      modalWeekdaySelection = [];
       openModal(`
         <h3>Add a routine</h3>
         <div class="panel" style="margin-top:0;">
           <div class="field"><label>Name</label><input type="text" style="flex:1;" id="m_routName" /></div>
           <div class="field"><label>Repeats</label>
-            <select id="m_routMode" onchange="modalRoutineModeChange()">
-              <option value="cadence">Every…</option>
-              <option value="date">On a date</option>
+            <select id="m_routSchedType" onchange="modalRoutineScheduleChange()">
+              <option value="interval">Every…</option>
+              <option value="weekdays">Specific weekdays</option>
+              <option value="monthdays">Specific days of month</option>
+              <option value="yearly">Once a year</option>
+              <option value="date">One date</option>
             </select>
           </div>
-          <div class="field" id="m_routCadenceField">
-            <select id="m_routCadence">
-              <option value="weekly">Week</option>
-              <option value="monthly">Month</option>
-              <option value="yearly">Year</option>
-            </select>
-          </div>
-          <div class="field" id="m_routDateField" style="display:none;">
-            <input type="date" id="m_routDate" />
-          </div>
+          <div id="m_routSchedFields"></div>
           <div class="field"><label>Group</label>
             <select id="m_routGroup" onchange="modalRoutineGroupChange()">
               <option value="">No group</option>
@@ -1467,36 +1494,75 @@
           <button class="link" onclick="closeModal()">Cancel</button>
         </div>
       `);
+      modalRoutineScheduleChange();
     }
-    function modalRoutineModeChange() {
-      const mode = document.getElementById('m_routMode').value;
-      document.getElementById('m_routCadenceField').style.display = mode === 'cadence' ? 'flex' : 'none';
-      document.getElementById('m_routDateField').style.display = mode === 'date' ? 'flex' : 'none';
+    function modalRoutineScheduleChange() {
+      const type = document.getElementById('m_routSchedType').value;
+      const el = document.getElementById('m_routSchedFields');
+      if (type === 'interval') {
+        el.innerHTML = `<div class="field"><label></label>
+          <span style="font-size:13px;color:var(--muted);">Every</span>
+          <input type="number" min="1" class="short" id="m_routIntervalN" value="1" />
+          <select id="m_routIntervalUnit">
+            <option value="days">Days</option>
+            <option value="weeks" selected>Weeks</option>
+            <option value="months">Months</option>
+            <option value="years">Years</option>
+          </select></div>`;
+      } else if (type === 'weekdays') {
+        modalWeekdaySelection = [];
+        el.innerHTML = `<div class="field"><label></label><div class="chips">
+          ${[['Mo',1],['Tu',2],['We',3],['Th',4],['Fr',5],['Sa',6],['Su',0]].map(([lbl,val]) => `<button type="button" class="chip" onclick="modalToggleWeekday(${val}, this)">${lbl}</button>`).join('')}
+        </div></div>`;
+      } else if (type === 'monthdays') {
+        el.innerHTML = `<div class="field"><label></label><input type="text" style="flex:1;" id="m_routMonthdays" placeholder="e.g. 1, 15" /></div>`;
+      } else if (type === 'yearly') {
+        el.innerHTML = `<div class="field"><label></label>
+          <select id="m_routYearMonth">${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i) => `<option value="${i+1}">${m}</option>`).join('')}</select>
+          <input type="number" min="1" max="31" class="short" id="m_routYearDay" value="1" /></div>`;
+      } else if (type === 'date') {
+        el.innerHTML = `<div class="field"><label></label><input type="date" id="m_routDate" /></div>`;
+      }
+    }
+    function modalToggleWeekday(day, btn) {
+      const idx = modalWeekdaySelection.indexOf(day);
+      if (idx >= 0) { modalWeekdaySelection.splice(idx, 1); btn.classList.remove('on'); }
+      else { modalWeekdaySelection.push(day); btn.classList.add('on'); }
     }
     function modalRoutineGroupChange() {
       const v = document.getElementById('m_routGroup').value;
       document.getElementById('m_routNewGroupField').style.display = v === 'new' ? 'flex' : 'none';
     }
+    function buildScheduleFromModal() {
+      const type = document.getElementById('m_routSchedType').value;
+      if (type === 'interval') {
+        return { type: 'interval', intervalN: Number(document.getElementById('m_routIntervalN').value) || 1, intervalUnit: document.getElementById('m_routIntervalUnit').value };
+      }
+      if (type === 'weekdays') {
+        return { type: 'weekdays', weekdays: modalWeekdaySelection.slice() };
+      }
+      if (type === 'monthdays') {
+        const text = document.getElementById('m_routMonthdays').value;
+        return { type: 'monthdays', monthdays: text.split(/[,，\s]+/).map(s => parseInt(s, 10)).filter(n => n >= 1 && n <= 31) };
+      }
+      if (type === 'yearly') {
+        return { type: 'yearly', yearMonth: Number(document.getElementById('m_routYearMonth').value) || 1, yearDay: Number(document.getElementById('m_routYearDay').value) || 1 };
+      }
+      return { type: 'date', onDate: document.getElementById('m_routDate').value || null };
+    }
     function submitAddRoutine() {
       const name = document.getElementById('m_routName').value.trim();
       if (!name) return;
-      const mode = document.getElementById('m_routMode').value;
-      const cadence = document.getElementById('m_routCadence').value;
-      const dateVal = document.getElementById('m_routDate').value;
+      const schedule = buildScheduleFromModal();
+      const r = { id: uid(), name, mode: 'cadence', cadence: 'weekly', nextDate: null, history: [], paused: false, aliases: [], schedule };
       const groupChoice = document.getElementById('m_routGroup').value;
       if (groupChoice === 'new') {
         const groupName = document.getElementById('m_routNewGroupName').value.trim() || 'New group';
-        const r = leaf(name, cadence);
-        r.mode = mode;
-        if (mode === 'date') r.nextDate = dateVal || null;
         data.routines.push({ id: uid(), name: groupName, group: true, collapsed: false, paused: false, items: [r] });
         saveData();
       } else if (groupChoice) {
-        addRoutineToGroup(groupChoice, name, mode, cadence, dateVal);
+        addRoutineToGroup(groupChoice, r);
       } else {
-        const r = leaf(name, cadence);
-        r.mode = mode;
-        if (mode === 'date') r.nextDate = dateVal || null;
         data.routines.push(r);
         saveData();
       }
