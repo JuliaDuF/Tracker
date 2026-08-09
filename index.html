@@ -177,8 +177,9 @@
       <button class="btn-backup" onclick="document.getElementById('importFile').click()">📤 Import backup</button>
       <input type="file" id="importFile" accept=".json" onchange="importData(event)" />
     </div>
-    <div class="row" style="justify-content:center;margin-top:14px;">
+    <div class="row" style="justify-content:center;margin-top:14px;gap:18px;">
       <button class="link" onclick="toggleDataPanel()">All data</button>
+      <button class="link" onclick="openAddDataModal()">Add data</button>
     </div>
     <div id="dataPanel"></div>
   </div>
@@ -285,10 +286,15 @@
     let bodyView = 'list';
     let movementView = 'calendar';
     let sectionCollapsed = {};
+    let activityJustLogged = {};
     let calMonth = new Date().getMonth();
     let calYear = new Date().getFullYear();
     let sleepEditing = false;
+    let sleepDataEditing = false;
+    let sleepAdding = false;
     let weightEditing = false;
+    let weightDataEditing = false;
+    let weightAdding = false;
     let editingFrequency = {};
     let dataPanelOpen = false;
     let dataPanelSelected = new Set();
@@ -491,11 +497,12 @@
     }
     function moveBody(idx, dir) { data.bodyOrder = arrMove(data.bodyOrder, idx, dir); saveData(); }
 
+    function tomorrowKey() { const d = new Date(); d.setDate(d.getDate() + 1); return dateKey(d); }
     function renderSleepCard() {
       const today = todayKey();
+      const tomorrow = tomorrowKey();
       const te = data.sleep.entries.find(e => e.date === today);
-      const bedDay = te ? (te.bedDay || 'yesterday') : 'yesterday';
-      const wakeDay = te ? (te.wakeDay || 'today') : 'today';
+      const complete = !!(te && te.bed && te.wake);
       let html = `<div class="card${data.sleep.paused ? ' paused' : ''}">
         <div class="card-head">
           <span class="cname" style="border-bottom:none;">Sleep</span>
@@ -518,33 +525,54 @@
             Last night: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}
           </div>`;
         }
-        html += `<div class="row">
-          <span style="font-size:12px;color:var(--muted);">To bed</span>
-          <input type="time" class="timeinput" id="bedInput" value="${te ? te.bed : ''}" />
-          <select class="dayselect" id="bedDaySel"><option value="yesterday" ${bedDay==='yesterday'?'selected':''}>Yesterday</option><option value="today" ${bedDay==='today'?'selected':''}>Today</option></select>
-        </div>
-        <div class="row">
-          <span style="font-size:12px;color:var(--muted);">Up at</span>
-          <input type="time" class="timeinput" id="wakeInput" value="${te ? te.wake : ''}" />
-          <select class="dayselect" id="wakeDaySel"><option value="today" ${wakeDay==='today'?'selected':''}>Today</option><option value="yesterday" ${wakeDay==='yesterday'?'selected':''}>Yesterday</option></select>
-          <button class="mini" onclick="saveSleep()">Save</button>
-        </div>`;
+        if (!complete) {
+          html += renderSleepForm(today, 'sleepMain', te, 'yesterday', 'today', null);
+        } else {
+          html += `<div class="row">
+            <button class="link" onclick="toggleSleepDataEdit()">${sleepDataEditing ? 'Close' : 'Edit'}</button>
+            <button class="link" onclick="toggleSleepAdd()">${sleepAdding ? 'Close' : 'Add'}</button>
+          </div>`;
+          if (sleepDataEditing) html += renderSleepForm(today, 'sleepEdit', te, 'yesterday', 'today', 'edit');
+          if (sleepAdding) {
+            const te2 = data.sleep.entries.find(e => e.date === tomorrow);
+            html += renderSleepForm(tomorrow, 'sleepAdd', te2, 'today', 'tomorrow', 'add');
+          }
+        }
       }
       html += `</div>`;
       return html;
     }
-    function saveSleep() {
-      const bed = document.getElementById('bedInput').value;
-      const wake = document.getElementById('wakeInput').value;
-      const bedDay = document.getElementById('bedDaySel').value;
-      const wakeDay = document.getElementById('wakeDaySel').value;
+    function renderSleepForm(dateStr, prefix, te, bedDayDefault, wakeDayDefault, closeWhich) {
+      const bedDay = te ? (te.bedDay || bedDayDefault) : bedDayDefault;
+      const wakeDay = te ? (te.wakeDay || wakeDayDefault) : wakeDayDefault;
+      return `<div class="row">
+        <span style="font-size:12px;color:var(--muted);">To bed</span>
+        <input type="time" class="timeinput" id="${prefix}Bed" value="${te ? te.bed : ''}" />
+        <select class="dayselect" id="${prefix}BedDay"><option value="yesterday" ${bedDay==='yesterday'?'selected':''}>Yesterday</option><option value="today" ${bedDay==='today'?'selected':''}>Today</option></select>
+      </div>
+      <div class="row">
+        <span style="font-size:12px;color:var(--muted);">Up at</span>
+        <input type="time" class="timeinput" id="${prefix}Wake" value="${te ? te.wake : ''}" />
+        <select class="dayselect" id="${prefix}WakeDay"><option value="today" ${wakeDay==='today'?'selected':''}>Today</option><option value="tomorrow" ${wakeDay==='tomorrow'?'selected':''}>Tomorrow</option><option value="yesterday" ${wakeDay==='yesterday'?'selected':''}>Yesterday</option></select>
+        <button class="mini" onclick="saveSleepEntry('${dateStr}','${prefix}',${closeWhich ? `'${closeWhich}'` : 'null'})">Save</button>
+      </div>`;
+    }
+    function saveSleepEntry(dateStr, prefix, which) {
+      const bed = document.getElementById(prefix + 'Bed').value;
+      const wake = document.getElementById(prefix + 'Wake').value;
+      const bedDay = document.getElementById(prefix + 'BedDay').value;
+      const wakeDay = document.getElementById(prefix + 'WakeDay').value;
       if (!bed && !wake) return;
-      data.sleep.entries = data.sleep.entries.filter(e => e.date !== todayKey());
-      data.sleep.entries.push({ date: todayKey(), bed: bed || '', wake: wake || '', bedDay, wakeDay });
+      data.sleep.entries = data.sleep.entries.filter(e => e.date !== dateStr);
+      data.sleep.entries.push({ date: dateStr, bed: bed || '', wake: wake || '', bedDay, wakeDay });
+      if (which === 'edit') sleepDataEditing = false;
+      if (which === 'add') sleepAdding = false;
       saveData();
     }
     function toggleSleepPause() { data.sleep.paused = !data.sleep.paused; saveData(); }
     function toggleSleepEdit() { sleepEditing = !sleepEditing; render(); }
+    function toggleSleepDataEdit() { sleepDataEditing = !sleepDataEditing; render(); }
+    function toggleSleepAdd() { sleepAdding = !sleepAdding; render(); }
     function updateSleepGoal(field, value) { data.sleep[field] = value; saveData(); }
     function renderSleepChart() {
       const entries = [...data.sleep.entries].filter(e => sleepDurEntry(e) != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
@@ -556,7 +584,9 @@
 
     function renderWeightCard() {
       const today = todayKey();
+      const tomorrow = tomorrowKey();
       const te = data.weight.entries.find(e => e.date === today);
+      const complete = !!(te && te.pm != null);
       let html = `<div class="card${data.weight.paused ? ' paused' : ''}">
         <div class="card-head">
           <span class="cname" style="border-bottom:none;">Weight</span>
@@ -577,27 +607,46 @@
             Today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (kg)
           </div>`;
         }
-        html += `<div class="row">
-          <span style="font-size:12px;color:var(--muted);">Morning</span>
-          <input type="number" step="0.1" class="short" id="weightAm" value="${te && te.am != null ? te.am : ''}" />
-          <span style="font-size:12px;color:var(--muted);">Evening</span>
-          <input type="number" step="0.1" class="short" id="weightPm" value="${te && te.pm != null ? te.pm : ''}" />
-          <button class="mini" onclick="saveWeight()">Save</button>
-        </div>`;
+        if (!complete) {
+          html += renderWeightForm(today, 'weightMain', te, null);
+        } else {
+          html += `<div class="row">
+            <button class="link" onclick="toggleWeightDataEdit()">${weightDataEditing ? 'Close' : 'Edit'}</button>
+            <button class="link" onclick="toggleWeightAdd()">${weightAdding ? 'Close' : 'Add'}</button>
+          </div>`;
+          if (weightDataEditing) html += renderWeightForm(today, 'weightEdit', te, 'edit');
+          if (weightAdding) {
+            const te2 = data.weight.entries.find(e => e.date === tomorrow);
+            html += renderWeightForm(tomorrow, 'weightAdd', te2, 'add');
+          }
+        }
       }
       html += `</div>`;
       return html;
     }
-    function saveWeight() {
-      const am = document.getElementById('weightAm').value;
-      const pm = document.getElementById('weightPm').value;
+    function renderWeightForm(dateStr, prefix, te, closeWhich) {
+      return `<div class="row">
+        <span style="font-size:12px;color:var(--muted);">Morning</span>
+        <input type="number" step="0.1" class="short" id="${prefix}Am" value="${te && te.am != null ? te.am : ''}" />
+        <span style="font-size:12px;color:var(--muted);">Evening</span>
+        <input type="number" step="0.1" class="short" id="${prefix}Pm" value="${te && te.pm != null ? te.pm : ''}" />
+        <button class="mini" onclick="saveWeightEntry('${dateStr}','${prefix}',${closeWhich ? `'${closeWhich}'` : 'null'})">Save</button>
+      </div>`;
+    }
+    function saveWeightEntry(dateStr, prefix, which) {
+      const am = document.getElementById(prefix + 'Am').value;
+      const pm = document.getElementById(prefix + 'Pm').value;
       if (!am && !pm) return;
-      data.weight.entries = data.weight.entries.filter(e => e.date !== todayKey());
-      data.weight.entries.push({ date: todayKey(), am: am ? parseFloat(am) : null, pm: pm ? parseFloat(pm) : null });
+      data.weight.entries = data.weight.entries.filter(e => e.date !== dateStr);
+      data.weight.entries.push({ date: dateStr, am: am ? parseFloat(am) : null, pm: pm ? parseFloat(pm) : null });
+      if (which === 'edit') weightDataEditing = false;
+      if (which === 'add') weightAdding = false;
       saveData();
     }
     function toggleWeightPause() { data.weight.paused = !data.weight.paused; saveData(); }
     function toggleWeightEdit() { weightEditing = !weightEditing; render(); }
+    function toggleWeightDataEdit() { weightDataEditing = !weightDataEditing; render(); }
+    function toggleWeightAdd() { weightAdding = !weightAdding; render(); }
     function updateWeightGoal(value) { data.weight.goalTarget = parseFloat(value) || 0; saveData(); }
     function renderWeightChart() {
       const entries = [...data.weight.entries].filter(e => e.am != null || e.pm != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
@@ -774,10 +823,14 @@
             <div class="field"><label>By</label><input type="date" value="${act.deadline}" onchange="updateActivity('${act.id}', 'deadline', this.value)" /></div>` : ''}
           </div>`;
         } else if (!act.paused) {
+          const fbHtml = activityJustLogged[act.id] ? `<div class="qfb ok" style="margin-top:8px;">Logged. <button class="link" onclick="quickUndo()">Undo</button></div>` : '';
           html += `<div class="row">
-            <input type="number" min="0" class="short" id="actMin${act.id}" /> <span style="font-size:12px;color:var(--muted);">min</span>
-            <button class="mini" onclick="logActivity('${act.id}')">Add</button>
-          </div>`;
+            <input type="number" min="0" class="short" id="actMin${act.id}" oninput="actInputChanged('${act.id}')" /> <span style="font-size:12px;color:var(--muted);">min</span>
+            <span style="font-size:12px;color:var(--muted);">or</span>
+            <input type="number" min="0" class="short" id="actSess${act.id}" oninput="actInputChanged('${act.id}')" /> <span style="font-size:12px;color:var(--muted);">session</span>
+            <button class="mini" id="actAddBtn${act.id}" style="display:none;" onclick="logActivity('${act.id}')">Add</button>
+          </div>
+          <div id="actFb${act.id}">${fbHtml}</div>`;
         }
         html += `</div>`;
       }
@@ -845,9 +898,33 @@
       saveData();
     }
     function logActivity(id) {
-      const mins = parseFloat(document.getElementById(`actMin${id}`).value);
+      const minInput = document.getElementById(`actMin${id}`);
+      const sessInput = document.getElementById(`actSess${id}`);
+      const minsVal = minInput.value ? parseFloat(minInput.value) : null;
+      const sessVal = sessInput.value ? parseInt(sessInput.value, 10) : null;
+      if (minsVal == null && sessVal == null) return;
       const a = data.activities.find(x => x.id === id);
-      if (a) { a.logs.push({ id: uid(), date: todayKey(), minutes: mins || 0 }); saveData(); }
+      if (!a) return;
+      lastUndo = JSON.parse(JSON.stringify(data));
+      if (minsVal != null) {
+        a.logs.push({ id: uid(), date: todayKey(), minutes: minsVal });
+      } else {
+        const per = a.defaultMin || 0;
+        for (let i = 0; i < sessVal; i++) a.logs.push({ id: uid(), date: todayKey(), minutes: per });
+      }
+      activityJustLogged[id] = true;
+      saveData();
+    }
+    function actInputChanged(id) {
+      const minVal = document.getElementById(`actMin${id}`).value;
+      const sessVal = document.getElementById(`actSess${id}`).value;
+      const btn = document.getElementById(`actAddBtn${id}`);
+      if (btn) btn.style.display = (minVal || sessVal) ? 'inline-block' : 'none';
+      if (activityJustLogged[id]) {
+        activityJustLogged[id] = false;
+        const fb = document.getElementById(`actFb${id}`);
+        if (fb) fb.innerHTML = '';
+      }
     }
     function removeActivityLog(actId, logId) { const a = data.activities.find(x => x.id === actId); if (a) { a.logs = a.logs.filter(l => l.id !== logId); saveData(); } }
     function toggleActivityHasGoal(id) { const a = data.activities.find(x => x.id === id); if (a) { a.hasGoal = !a.hasGoal; saveData(); } }
@@ -1030,11 +1107,76 @@
     }
 
     // ---------------- Routines ----------------
+    function ensureSchedule(r) {
+      if (!r.schedule) r.schedule = legacyScheduleFrom(r);
+      return r.schedule;
+    }
+    function legacyScheduleFrom(r) {
+      if (r.mode === 'date') return { type: 'date', onDate: r.nextDate || null };
+      if (r.cadence === 'yearly') return { type: 'interval', intervalN: 1, intervalUnit: 'years' };
+      if (r.cadence === 'monthly') return { type: 'interval', intervalN: 1, intervalUnit: 'months' };
+      return { type: 'interval', intervalN: 1, intervalUnit: 'weeks' };
+    }
+    function findRoutineRef(id, groupId) {
+      if (groupId) { const g = data.routines.find(e => e.id === groupId); return g && g.items.find(x => x.id === id); }
+      return data.routines.find(x => x.id === id);
+    }
     function routineDue(r) {
-      if (r.mode === 'date') return r.nextDate || null;
+      const sch = ensureSchedule(r);
       const last = r.history.length ? r.history.reduce((a, d) => (d > a ? d : a), r.history[0]) : null;
-      if (last) return dateKey(addByCadence(parseDate(last), r.cadence));
-      return r.nextDate || todayKey();
+      if (sch.type === 'date') return sch.onDate || null;
+      if (sch.type === 'interval') {
+        if (last) {
+          const d = parseDate(last);
+          const n = sch.intervalN || 1;
+          if (sch.intervalUnit === 'days') d.setDate(d.getDate() + n);
+          else if (sch.intervalUnit === 'weeks') d.setDate(d.getDate() + 7 * n);
+          else if (sch.intervalUnit === 'months') d.setMonth(d.getMonth() + n);
+          else if (sch.intervalUnit === 'years') d.setFullYear(d.getFullYear() + n);
+          return dateKey(d);
+        }
+        return todayKey();
+      }
+      if (sch.type === 'weekdays') {
+        const days = (sch.weekdays && sch.weekdays.length) ? sch.weekdays : [1];
+        let d = new Date(); d.setHours(0, 0, 0, 0);
+        if (last === todayKey()) d.setDate(d.getDate() + 1);
+        for (let i = 0; i < 14; i++) { if (days.includes(d.getDay())) return dateKey(d); d.setDate(d.getDate() + 1); }
+        return dateKey(d);
+      }
+      if (sch.type === 'monthdays') {
+        const days = (sch.monthdays && sch.monthdays.length) ? sch.monthdays : [1];
+        let d = new Date(); d.setHours(0, 0, 0, 0);
+        if (last === todayKey()) d.setDate(d.getDate() + 1);
+        for (let i = 0; i < 62; i++) { if (days.includes(d.getDate())) return dateKey(d); d.setDate(d.getDate() + 1); }
+        return dateKey(d);
+      }
+      if (sch.type === 'yearly') {
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const month = sch.yearMonth || 1, day = sch.yearDay || 1;
+        let d = new Date(now.getFullYear(), month - 1, day);
+        if (d < now || last === dateKey(d)) d = new Date(now.getFullYear() + 1, month - 1, day);
+        return dateKey(d);
+      }
+      return todayKey();
+    }
+    function scheduleSummary(sch) {
+      if (sch.type === 'date') return sch.onDate ? `On ${fmtShort(sch.onDate)}` : 'No date set';
+      if (sch.type === 'interval') return `Every ${sch.intervalN || 1} ${sch.intervalUnit || 'weeks'}`;
+      if (sch.type === 'weekdays') {
+        const names = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+        const list = (sch.weekdays || []).slice().sort().map(i => names[i]);
+        return list.length ? `Every ${list.join(', ')}` : 'Pick weekdays';
+      }
+      if (sch.type === 'monthdays') {
+        const list = sch.monthdays || [];
+        return list.length ? `Monthly on ${list.join(', ')}` : 'Pick days of month';
+      }
+      if (sch.type === 'yearly') {
+        const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `Every ${names[(sch.yearMonth || 1) - 1]} ${sch.yearDay || 1}`;
+      }
+      return '';
     }
     function renderRoutines() {
       if (edit) {
@@ -1125,26 +1267,48 @@
       }
       const gid = groupId ? `, '${groupId}'` : '';
       const editingFreq = !!editingFrequency[routine.id];
+      const sch = ensureSchedule(routine);
       let html = `<div class="routine" style="${paused ? 'opacity:.5;' : ''}">
         <div class="r-row1">
           <input type="text" class="${groupId ? 'rname' : 'cname'}" value="${routine.name}" onchange="updateRoutine('${routine.id}', 'name', this.value${gid})" />
           ${paused ? `<span class="badge-pause">Paused</span>` : ''}<button class="link" onclick="toggleEditFrequency('${routine.id}')">${editingFreq ? 'Close' : 'Edit'}</button>
         </div>`;
       if (editingFreq) {
-        html += `<div class="r-row2">
+        html += `<div class="r-row2" style="flex-direction:column;align-items:flex-start;gap:8px;">
           ${!groupPaused ? `<button class="chip${routine.paused ? ' on' : ''}" onclick="toggleRoutinePause('${routine.id}'${gid})">${routine.paused ? 'Paused: On' : 'Paused: Off'}</button>` : ''}
-          <select onchange="updateRoutine('${routine.id}', 'mode', this.value${gid})">
-            <option value="cadence" ${routine.mode === 'cadence' ? 'selected' : ''}>Every…</option>
-            <option value="date" ${routine.mode === 'date' ? 'selected' : ''}>On a date</option>
+          <select onchange="updateRoutineScheduleType('${routine.id}', this.value${gid})">
+            <option value="interval" ${sch.type === 'interval' ? 'selected' : ''}>Every…</option>
+            <option value="weekdays" ${sch.type === 'weekdays' ? 'selected' : ''}>Specific weekdays</option>
+            <option value="monthdays" ${sch.type === 'monthdays' ? 'selected' : ''}>Specific days of month</option>
+            <option value="yearly" ${sch.type === 'yearly' ? 'selected' : ''}>Once a year</option>
+            <option value="date" ${sch.type === 'date' ? 'selected' : ''}>One date</option>
           </select>`;
-        if (routine.mode === 'cadence') {
-          html += `<select onchange="updateRoutine('${routine.id}', 'cadence', this.value${gid})">
-            <option value="weekly" ${routine.cadence === 'weekly' ? 'selected' : ''}>Week</option>
-            <option value="monthly" ${routine.cadence === 'monthly' ? 'selected' : ''}>Month</option>
-            <option value="yearly" ${routine.cadence === 'yearly' ? 'selected' : ''}>Year</option>
-          </select>`;
+        if (sch.type === 'interval') {
+          html += `<div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13px;color:var(--muted);">Every</span>
+            <input type="number" min="1" class="short" value="${sch.intervalN || 1}" onchange="updateRoutineSchedule('${routine.id}','intervalN',Number(this.value)${gid})" />
+            <select onchange="updateRoutineSchedule('${routine.id}','intervalUnit',this.value${gid})">
+              <option value="days" ${sch.intervalUnit==='days'?'selected':''}>Days</option>
+              <option value="weeks" ${sch.intervalUnit==='weeks'?'selected':''}>Weeks</option>
+              <option value="months" ${sch.intervalUnit==='months'?'selected':''}>Months</option>
+              <option value="years" ${sch.intervalUnit==='years'?'selected':''}>Years</option>
+            </select>
+          </div>`;
+        } else if (sch.type === 'weekdays') {
+          html += `<div class="chips">
+            ${['Su','Mo','Tu','We','Th','Fr','Sa'].map((lbl, i) => `<button class="chip${(sch.weekdays||[]).includes(i)?' on':''}" onclick="toggleRoutineWeekday('${routine.id}',${i}${gid})">${lbl}</button>`).join('')}
+          </div>`;
+        } else if (sch.type === 'monthdays') {
+          html += `<input type="text" style="flex:1;" value="${(sch.monthdays||[]).join(', ')}" placeholder="e.g. 1, 15" onchange="updateRoutineMonthdays('${routine.id}', this.value${gid})" />`;
+        } else if (sch.type === 'yearly') {
+          html += `<div style="display:flex;align-items:center;gap:8px;">
+            <select onchange="updateRoutineSchedule('${routine.id}','yearMonth',Number(this.value)${gid})">
+              ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i)=>`<option value="${i+1}" ${sch.yearMonth===i+1?'selected':''}>${m}</option>`).join('')}
+            </select>
+            <input type="number" min="1" max="31" class="short" value="${sch.yearDay || 1}" onchange="updateRoutineSchedule('${routine.id}','yearDay',Number(this.value)${gid})" />
+          </div>`;
         } else {
-          html += `<input type="date" value="${routine.nextDate || ''}" onchange="updateRoutine('${routine.id}', 'nextDate', this.value${gid})" />`;
+          html += `<input type="date" value="${sch.onDate || ''}" onchange="updateRoutineSchedule('${routine.id}','onDate',this.value${gid})" />`;
         }
         html += `</div>`;
       }
@@ -1158,6 +1322,32 @@
       return html;
     }
     function toggleEditFrequency(id) { editingFrequency[id] = !editingFrequency[id]; render(); }
+    function updateRoutineScheduleType(id, type, groupId) {
+      const r = findRoutineRef(id, groupId); if (!r) return;
+      ensureSchedule(r);
+      r.schedule.type = type;
+      saveData();
+    }
+    function updateRoutineSchedule(id, field, value, groupId) {
+      const r = findRoutineRef(id, groupId); if (!r) return;
+      ensureSchedule(r);
+      r.schedule[field] = value;
+      saveData();
+    }
+    function toggleRoutineWeekday(id, day, groupId) {
+      const r = findRoutineRef(id, groupId); if (!r) return;
+      ensureSchedule(r);
+      if (!r.schedule.weekdays) r.schedule.weekdays = [];
+      const idx = r.schedule.weekdays.indexOf(day);
+      if (idx >= 0) r.schedule.weekdays.splice(idx, 1); else r.schedule.weekdays.push(day);
+      saveData();
+    }
+    function updateRoutineMonthdays(id, text, groupId) {
+      const r = findRoutineRef(id, groupId); if (!r) return;
+      ensureSchedule(r);
+      r.schedule.monthdays = text.split(/[,，\s]+/).map(s => parseInt(s, 10)).filter(n => n >= 1 && n <= 31);
+      saveData();
+    }
     function moveRoutine(idx, dir) { data.routines = arrMove(data.routines, idx, dir); saveData(); }
     function moveRoutineItem(groupId, idx, dir) {
       const g = data.routines.find(e => e.id === groupId && e.group);
@@ -1217,7 +1407,7 @@
     }
     function markRoutineDone(id, groupId) {
       const today = todayKey();
-      const mark = (it) => { if (!it.history.includes(today)) it.history.push(today); if (it.mode === 'date') it.nextDate = null; };
+      const mark = (it) => { if (!it.history.includes(today)) it.history.push(today); const sch = ensureSchedule(it); if (sch.type === 'date') sch.onDate = null; };
       if (groupId) { const g = data.routines.find(e => e.id === groupId); if (g) { const it = g.items.find(x => x.id === id); if (it) mark(it); } }
       else { const r = data.routines.find(x => x.id === id); if (r && !r.group) mark(r); }
       saveData();
@@ -1510,7 +1700,7 @@
         msg = `Logged ${nlg > 1 ? nlg + '× ' : ''}${per ? fmtMinutes(per) : 'a day'} to ${a.name}.`;
       } else if (best.type === 'routine') {
         const t = todayKey();
-        const mark = (it) => { if (!it.history.includes(t)) it.history.push(t); if (it.mode === 'date') it.nextDate = null; };
+        const mark = (it) => { if (!it.history.includes(t)) it.history.push(t); const sch = ensureSchedule(it); if (sch.type === 'date') sch.onDate = null; };
         if (best.groupId) { const g = data.routines.find(e => e.id === best.groupId); mark(g.items.find(x => x.id === best.id)); }
         else mark(data.routines.find(x => x.id === best.id));
         msg = `Marked ${best.name} done.`;
@@ -1525,7 +1715,7 @@
       saveData();
     }
     function quickUndo() {
-      if (lastUndo) { data = lastUndo; lastUndo = null; document.getElementById('quickFeedback').innerHTML = `<div class="qfb ok">Undone.</div>`; saveData(); }
+      if (lastUndo) { data = lastUndo; lastUndo = null; activityJustLogged = {}; document.getElementById('quickFeedback').innerHTML = `<div class="qfb ok">Undone.</div>`; saveData(); }
     }
 
     // ---------------- All data (list + bulk delete) ----------------
@@ -1596,6 +1786,104 @@
       }
       html += `</div>`;
       el.innerHTML = html;
+    }
+
+    // ---------------- Add data (backfill any entry) ----------------
+    function openAddDataModal() {
+      openModal(`
+        <h3>Add data</h3>
+        <div class="panel" style="margin-top:0;">
+          <div class="field"><label>Type</label>
+            <select id="m_dataType" onchange="modalDataTypeChange()">
+              <option value="sleep">Sleep</option>
+              <option value="weight">Weight</option>
+              <option value="activity">Activity</option>
+              <option value="project">Project</option>
+              <option value="routine">Routine</option>
+            </select>
+          </div>
+          <div class="field"><label>Date</label><input type="date" id="m_dataDate" value="${todayKey()}" /></div>
+          <div id="m_dataFields"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="mini" onclick="submitAddData()">Add</button>
+          <button class="link" onclick="closeModal()">Cancel</button>
+        </div>
+      `);
+      modalDataTypeChange();
+    }
+    function modalDataTypeChange() {
+      const type = document.getElementById('m_dataType').value;
+      const el = document.getElementById('m_dataFields');
+      if (type === 'sleep') {
+        el.innerHTML = `
+          <div class="field"><label>To bed</label><input type="time" class="timeinput" id="m_dataBed" /><select class="dayselect" id="m_dataBedDay"><option value="yesterday" selected>Yesterday</option><option value="today">Today</option></select></div>
+          <div class="field"><label>Up at</label><input type="time" class="timeinput" id="m_dataWake" /><select class="dayselect" id="m_dataWakeDay"><option value="today" selected>Today</option><option value="yesterday">Yesterday</option></select></div>`;
+      } else if (type === 'weight') {
+        el.innerHTML = `
+          <div class="field"><label>Morning</label><input type="number" step="0.1" class="short" id="m_dataAm" /></div>
+          <div class="field"><label>Evening</label><input type="number" step="0.1" class="short" id="m_dataPm" /></div>`;
+      } else if (type === 'activity') {
+        const opts = data.activities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+        el.innerHTML = data.activities.length ? `
+          <div class="field"><label>Activity</label><select id="m_dataActId">${opts}</select></div>
+          <div class="field"><label>Minutes</label><input type="number" min="0" class="short" id="m_dataActMin" /></div>` : `<div class="pace">No activities yet.</div>`;
+      } else if (type === 'project') {
+        const opts = data.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        el.innerHTML = data.projects.length ? `
+          <div class="field"><label>Project</label><select id="m_dataProjId">${opts}</select></div>
+          <div class="field"><label>Minutes</label><input type="number" min="0" class="short" id="m_dataProjMin" /></div>
+          <div class="field"><label>Note</label><input type="text" style="flex:1;" id="m_dataProjNote" /></div>` : `<div class="pace">No projects yet.</div>`;
+      } else if (type === 'routine') {
+        const opts = [];
+        data.routines.forEach(e => {
+          if (e.group) e.items.forEach(it => opts.push(`<option value="${it.id}|${e.id}">${e.name} · ${it.name}</option>`));
+          else opts.push(`<option value="${e.id}|">${e.name}</option>`);
+        });
+        el.innerHTML = opts.length ? `<div class="field"><label>Routine</label><select id="m_dataRoutineId">${opts.join('')}</select></div>` : `<div class="pace">No routines yet.</div>`;
+      }
+    }
+    function submitAddData() {
+      const type = document.getElementById('m_dataType').value;
+      const dateStr = document.getElementById('m_dataDate').value || todayKey();
+      if (type === 'sleep') {
+        const bed = document.getElementById('m_dataBed').value;
+        const wake = document.getElementById('m_dataWake').value;
+        const bedDay = document.getElementById('m_dataBedDay').value;
+        const wakeDay = document.getElementById('m_dataWakeDay').value;
+        if (!bed && !wake) { closeModal(); return; }
+        data.sleep.entries = data.sleep.entries.filter(e => e.date !== dateStr);
+        data.sleep.entries.push({ date: dateStr, bed, wake, bedDay, wakeDay });
+      } else if (type === 'weight') {
+        const am = document.getElementById('m_dataAm').value;
+        const pm = document.getElementById('m_dataPm').value;
+        if (!am && !pm) { closeModal(); return; }
+        data.weight.entries = data.weight.entries.filter(e => e.date !== dateStr);
+        data.weight.entries.push({ date: dateStr, am: am ? parseFloat(am) : null, pm: pm ? parseFloat(pm) : null });
+      } else if (type === 'activity') {
+        const idEl = document.getElementById('m_dataActId');
+        if (!idEl) { closeModal(); return; }
+        const mins = parseFloat(document.getElementById('m_dataActMin').value) || 0;
+        const a = data.activities.find(x => x.id === idEl.value);
+        if (a) a.logs.push({ id: uid(), date: dateStr, minutes: mins });
+      } else if (type === 'project') {
+        const idEl = document.getElementById('m_dataProjId');
+        if (!idEl) { closeModal(); return; }
+        const mins = parseFloat(document.getElementById('m_dataProjMin').value) || 0;
+        const note = document.getElementById('m_dataProjNote').value.trim();
+        const p = data.projects.find(x => x.id === idEl.value);
+        if (p) p.sessions.push({ id: uid(), date: dateStr, minutes: mins, note });
+      } else if (type === 'routine') {
+        const idEl = document.getElementById('m_dataRoutineId');
+        if (!idEl) { closeModal(); return; }
+        const [rid, gid] = idEl.value.split('|');
+        let target = null;
+        if (gid) { const g = data.routines.find(x => x.id === gid); target = g && g.items.find(x => x.id === rid); }
+        else target = data.routines.find(x => x.id === rid);
+        if (target && !target.history.includes(dateStr)) target.history.push(dateStr);
+      }
+      closeModal();
+      saveData();
     }
 
     setTodayLabel();
