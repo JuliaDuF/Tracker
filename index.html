@@ -234,13 +234,22 @@
       const el = document.getElementById('syncStatus');
       if (el) el.textContent = text;
     }
+    async function detailFromResponse(res) {
+      let detail = String(res.status);
+      try {
+        const body = await res.json();
+        if (body && body.message) detail += ': ' + body.message;
+        else if (body && body.hint) detail += ': ' + body.hint;
+      } catch (e) { /* body wasn't JSON */ }
+      return detail;
+    }
     async function supaLoad() {
       setSyncStatus('☁️ checking…');
       try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/app_data?id=eq.${SYNC_ROW_ID}&select=data,updated_at`, {
           headers: supaHeaders(),
         });
-        if (!res.ok) throw new Error('load failed: ' + res.status);
+        if (!res.ok) throw new Error(await detailFromResponse(res));
         const rows = await res.json();
         if (rows && rows.length > 0 && rows[0].data) {
           data = rows[0].data;
@@ -254,7 +263,7 @@
           await supaSave();
         }
       } catch (e) {
-        setSyncStatus('⚠️ offline — using local copy');
+        setSyncStatus('⚠️ ' + (e.message || 'offline'));
       }
       render();
     }
@@ -266,10 +275,10 @@
           headers: supaHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
           body: JSON.stringify({ id: SYNC_ROW_ID, data, updated_at: new Date().toISOString() }),
         });
-        if (!res.ok) throw new Error('save failed: ' + res.status);
+        if (!res.ok) throw new Error(await detailFromResponse(res));
         setSyncStatus('☁️ synced');
       } catch (e) {
-        setSyncStatus('⚠️ saved locally only');
+        setSyncStatus('⚠️ ' + (e.message || 'save failed'));
       }
     }
     let syncTimer = null;
