@@ -93,7 +93,7 @@
     .mini { font-family: inherit; font-size: 13px; color: var(--accent-ink); background: var(--accent-soft); border: none; border-radius: 8px; padding: 8px 13px; cursor: pointer; }
 
     input[type="text"]:not(.cname):not(.rname):not(.h2), input[type="number"], input[type="date"], input[type="time"], select {
-      font-family: inherit; font-size: 14px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+      font-family: inherit; font-size: 16px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
     }
     input.short { width: 68px; }
     input.coin-in { width: 52px; }
@@ -280,6 +280,7 @@
     let editingGroup = {};
     let dueView = 'due';
     let bodyView = 'list';
+    let savingsExpanded = false;
     let movementView = 'bars';
     let calMonth = new Date().getMonth();
     let calYear = new Date().getFullYear();
@@ -437,6 +438,8 @@
         </span>`;
       } else if (key === 'body') {
         head += `<button class="editbtn${bodyView === 'chart' ? ' on' : ''}" onclick="toggleBodyView()">Chart</button>`;
+      } else if (key === 'savings') {
+        head += `<button class="editbtn${savingsExpanded ? ' on' : ''}" onclick="toggleSavingsExpanded()">${savingsExpanded ? 'Hide' : 'Show'}</button>`;
       } else if (key === 'projects') {
         head += `<button class="plus" onclick="openAddProjectModal()">+</button>`;
       } else if (key === 'routines') {
@@ -491,21 +494,15 @@
           ${data.sleep.paused ? '<span class="badge-pause">Paused</span>' : ''}
           <button class="link" onclick="toggleSleepEdit()">${sleepEditing ? 'Close' : 'Edit'}</button>
         </div>`;
-      if (bodyView === 'chart' && !data.sleep.paused) {
-        html += renderSleepChart();
-      } else if (sleepEditing) {
+      if (sleepEditing) {
         html += `<div class="panel">
           <div class="field"><label>Paused</label><button class="chip${data.sleep.paused ? ' on' : ''}" onclick="toggleSleepPause()">${data.sleep.paused ? 'On' : 'Off'}</button></div>
-          <div class="field"><label>To bed</label>
-            <input type="time" id="bedInput" value="${te ? te.bed : ''}" />
-            <select id="bedDaySel"><option value="yesterday" ${bedDay==='yesterday'?'selected':''}>Yesterday</option><option value="today" ${bedDay==='today'?'selected':''}>Today</option></select>
-          </div>
-          <div class="field"><label>Up at</label>
-            <input type="time" id="wakeInput" value="${te ? te.wake : ''}" />
-            <select id="wakeDaySel"><option value="today" ${wakeDay==='today'?'selected':''}>Today</option><option value="yesterday" ${wakeDay==='yesterday'?'selected':''}>Yesterday</option></select>
-          </div>
-          <div class="row" style="margin-top:0;"><button class="mini" onclick="saveSleep()">Save</button></div>
+          <div class="field"><label>Goal bed</label><input type="time" value="${data.sleep.goalBedTime || '23:30'}" onchange="updateSleepGoal('goalBedTime', this.value)" /><span style="font-size:12px;color:var(--muted);">or earlier</span></div>
+          <div class="field"><label>Goal wake</label><input type="time" value="${data.sleep.goalWakeTime || '08:00'}" onchange="updateSleepGoal('goalWakeTime', this.value)" /><span style="font-size:12px;color:var(--muted);">or earlier</span></div>
         </div>`;
+      }
+      if (bodyView === 'chart' && !data.sleep.paused) {
+        html += renderSleepChart();
       } else if (!data.sleep.paused) {
         const dur = te && sleepDurEntry(te);
         if (te) {
@@ -513,6 +510,17 @@
             Last night: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}
           </div>`;
         }
+        html += `<div class="row">
+          <span style="font-size:12px;color:var(--muted);">To bed</span>
+          <input type="time" id="bedInput" value="${te ? te.bed : ''}" />
+          <select id="bedDaySel"><option value="yesterday" ${bedDay==='yesterday'?'selected':''}>Yesterday</option><option value="today" ${bedDay==='today'?'selected':''}>Today</option></select>
+        </div>
+        <div class="row">
+          <span style="font-size:12px;color:var(--muted);">Up at</span>
+          <input type="time" id="wakeInput" value="${te ? te.wake : ''}" />
+          <select id="wakeDaySel"><option value="today" ${wakeDay==='today'?'selected':''}>Today</option><option value="yesterday" ${wakeDay==='yesterday'?'selected':''}>Yesterday</option></select>
+          <button class="mini" onclick="saveSleep()">Save</button>
+        </div>`;
       }
       html += `</div>`;
       return html;
@@ -525,11 +533,11 @@
       if (!bed && !wake) return;
       data.sleep.entries = data.sleep.entries.filter(e => e.date !== todayKey());
       data.sleep.entries.push({ date: todayKey(), bed: bed || '', wake: wake || '', bedDay, wakeDay });
-      sleepEditing = false;
       saveData();
     }
     function toggleSleepPause() { data.sleep.paused = !data.sleep.paused; saveData(); }
     function toggleSleepEdit() { sleepEditing = !sleepEditing; render(); }
+    function updateSleepGoal(field, value) { data.sleep[field] = value; saveData(); }
     function renderSleepChart() {
       const entries = [...data.sleep.entries].filter(e => sleepDurEntry(e) != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
       if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
@@ -547,21 +555,27 @@
           ${data.weight.paused ? '<span class="badge-pause">Paused</span>' : ''}
           <button class="link" onclick="toggleWeightEdit()">${weightEditing ? 'Close' : 'Edit'}</button>
         </div>`;
-      if (bodyView === 'chart' && !data.weight.paused) {
-        html += renderWeightChart();
-      } else if (weightEditing) {
+      if (weightEditing) {
         html += `<div class="panel">
           <div class="field"><label>Paused</label><button class="chip${data.weight.paused ? ' on' : ''}" onclick="toggleWeightPause()">${data.weight.paused ? 'On' : 'Off'}</button></div>
-          <div class="field"><label>Morning</label><input type="number" step="0.1" class="short" id="weightAm" value="${te && te.am != null ? te.am : ''}" /></div>
-          <div class="field"><label>Evening</label><input type="number" step="0.1" class="short" id="weightPm" value="${te && te.pm != null ? te.pm : ''}" /></div>
-          <div class="row" style="margin-top:0;"><button class="mini" onclick="saveWeight()">Save</button></div>
+          <div class="field"><label>Goal</label><input type="number" step="0.1" class="short" value="${data.weight.goalTarget || ''}" onchange="updateWeightGoal(this.value)" /><span style="font-size:12px;color:var(--muted);">kg</span></div>
         </div>`;
+      }
+      if (bodyView === 'chart' && !data.weight.paused) {
+        html += renderWeightChart();
       } else if (!data.weight.paused) {
         if (te) {
           html += `<div class="pace" style="margin-top:4px;">
             Today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (kg)
           </div>`;
         }
+        html += `<div class="row">
+          <span style="font-size:12px;color:var(--muted);">Morning</span>
+          <input type="number" step="0.1" class="short" id="weightAm" value="${te && te.am != null ? te.am : ''}" />
+          <span style="font-size:12px;color:var(--muted);">Evening</span>
+          <input type="number" step="0.1" class="short" id="weightPm" value="${te && te.pm != null ? te.pm : ''}" />
+          <button class="mini" onclick="saveWeight()">Save</button>
+        </div>`;
       }
       html += `</div>`;
       return html;
@@ -572,11 +586,11 @@
       if (!am && !pm) return;
       data.weight.entries = data.weight.entries.filter(e => e.date !== todayKey());
       data.weight.entries.push({ date: todayKey(), am: am ? parseFloat(am) : null, pm: pm ? parseFloat(pm) : null });
-      weightEditing = false;
       saveData();
     }
     function toggleWeightPause() { data.weight.paused = !data.weight.paused; saveData(); }
     function toggleWeightEdit() { weightEditing = !weightEditing; render(); }
+    function updateWeightGoal(value) { data.weight.goalTarget = parseFloat(value) || 0; saveData(); }
     function renderWeightChart() {
       const entries = [...data.weight.entries].filter(e => e.am != null || e.pm != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
       if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
@@ -622,7 +636,9 @@
         <div class="coin-label">${count}× ${kind.charAt(0).toUpperCase()}${kind.slice(1)}${count > cap ? ` (+${count - cap})` : ''}</div>
       </div>`;
     }
+    function toggleSavingsExpanded() { savingsExpanded = !savingsExpanded; render(); }
     function renderSavings() {
+      if (!savingsExpanded) return '';
       const tx = data.savings.tx;
       const balance = tx.reduce((s, t) => s + (t.type === 'deposit' ? t.amount : -t.amount), 0);
       const gold = Math.floor(balance / 1000), rem = balance - gold * 1000;
@@ -637,46 +653,49 @@
           ${renderCoinStack('bronze', bronze)}
         </div>
         ${loose ? `<div class="pace" style="margin-top:8px;">+$${loose} loose</div>` : ''}
-        <div class="panel">
-          <div class="field"><label>Coins</label>
-            <span class="cdot" style="border-color:var(--gold);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="coinG" />
-            <span class="cdot" style="border-color:var(--silver);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="coinS" />
-            <span class="cdot" style="border-color:var(--bronze);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="coinB" />
-          </div>
-          <div class="field"><label>For</label><input type="text" style="flex:1 1 120px;" id="coinPurpose" placeholder="What it's for (required to withdraw)" /></div>
-          <div class="row">
-            <button class="mini" onclick="savingsDeposit()">Deposit</button>
-            <button class="mini" onclick="savingsWithdraw()">Withdraw</button>
-            <span style="font-size:12px;color:var(--muted);margin-left:4px;">Gold $1000 · Silver $500 · Bronze $100</span>
-          </div>
+        <div class="row">
+          <button class="mini" onclick="openSavingsModal('deposit')">Deposit</button>
+          <button class="mini" onclick="openSavingsModal('withdraw')">Withdraw</button>
         </div>
-        <div id="savingsErr"></div>`;
-      html += `</div>`;
+      </div>`;
       return html;
     }
-    function toggleSavingsHist() { data.savings.showHist = !data.savings.showHist; saveData(); }
-    function readCoins() {
-      const g = +document.getElementById('coinG').value || 0;
-      const s = +document.getElementById('coinS').value || 0;
-      const b = +document.getElementById('coinB').value || 0;
-      return { g, s, b, amount: g * 1000 + s * 500 + b * 100 };
+    function openSavingsModal(type) {
+      const label = type === 'deposit' ? 'Deposit' : 'Withdraw';
+      openModal(`
+        <h3>How much do you want to ${label}?</h3>
+        <div class="panel" style="margin-top:0;">
+          <div class="field"><label>Coins</label>
+            <span class="cdot" style="border-color:var(--gold);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="m_coinG" />
+            <span class="cdot" style="border-color:var(--silver);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="m_coinS" />
+            <span class="cdot" style="border-color:var(--bronze);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="m_coinB" />
+          </div>
+          <div class="field"><label>For</label><input type="text" style="flex:1 1 120px;" id="m_coinPurpose" placeholder="${type === 'withdraw' ? "What it's for (required)" : "What it's for (optional)"}" /></div>
+          <span style="font-size:12px;color:var(--muted);">Gold $1000 · Silver $500 · Bronze $100</span>
+          <div id="m_savingsErr"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="mini" onclick="submitSavingsModal('${type}')">Submit</button>
+          <button class="link" onclick="closeModal()">Cancel</button>
+        </div>
+      `);
     }
-    function savingsErr(msg) { document.getElementById('savingsErr').innerHTML = msg ? `<div class="qfb err" style="margin-top:10px;">${msg}</div>` : ''; }
-    function savingsDeposit() {
-      const { g, s, b, amount } = readCoins();
-      if (amount <= 0) { savingsErr('Pick at least one coin.'); return; }
-      const purpose = document.getElementById('coinPurpose').value.trim();
-      data.savings.tx.push({ id: uid(), type: 'deposit', amount, coins: { g, s, b }, purpose, date: todayKey() });
-      saveData();
-    }
-    function savingsWithdraw() {
-      const { g, s, b, amount } = readCoins();
-      const balance = data.savings.tx.reduce((s2, t) => s2 + (t.type === 'deposit' ? t.amount : -t.amount), 0);
-      if (amount <= 0) { savingsErr('Pick which coins to take out.'); return; }
-      if (amount > balance) { savingsErr("That's more than you have saved."); return; }
-      const purpose = document.getElementById('coinPurpose').value.trim();
-      if (!purpose) { savingsErr("Add what it's for."); return; }
-      data.savings.tx.push({ id: uid(), type: 'withdraw', amount, coins: { g, s, b }, purpose, date: todayKey() });
+    function submitSavingsModal(type) {
+      const g = +document.getElementById('m_coinG').value || 0;
+      const s = +document.getElementById('m_coinS').value || 0;
+      const b = +document.getElementById('m_coinB').value || 0;
+      const amount = g * 1000 + s * 500 + b * 100;
+      const purpose = document.getElementById('m_coinPurpose').value.trim();
+      const errEl = document.getElementById('m_savingsErr');
+      const setErr = (msg) => { errEl.innerHTML = msg ? `<div class="qfb err" style="margin-top:6px;">${msg}</div>` : ''; };
+      if (amount <= 0) { setErr(type === 'deposit' ? 'Pick at least one coin.' : 'Pick which coins to take out.'); return; }
+      if (type === 'withdraw') {
+        const balance = data.savings.tx.reduce((s2, t) => s2 + (t.type === 'deposit' ? t.amount : -t.amount), 0);
+        if (amount > balance) { setErr("That's more than you have saved."); return; }
+        if (!purpose) { setErr("Add what it's for."); return; }
+      }
+      data.savings.tx.push({ id: uid(), type, amount, coins: { g, s, b }, purpose, date: todayKey() });
+      closeModal();
       saveData();
     }
 
@@ -1325,6 +1344,13 @@
       html += `</div>`;
       dueEl.innerHTML = html;
     }
+    function fmtTime12(t) {
+      if (!t) return '';
+      const [h, m] = t.split(':').map(Number);
+      const period = h < 12 ? 'am' : 'pm';
+      let h12 = h % 12; if (h12 === 0) h12 = 12;
+      return `${h12}:${String(m).padStart(2, '0')}${period}`;
+    }
     function computeWeekSummary() {
       const start = new Date();
       start.setHours(0, 0, 0, 0);
@@ -1333,10 +1359,26 @@
       const candidates = [];
       if (!data.sleep.paused) {
         const entries = data.sleep.entries.filter(e => inWeek(e.date));
-        const earlyNights = entries.filter(e => { const v = bedHourValue(e); return v != null && v <= 23.5; }).length;
-        const earlyMornings = entries.filter(e => { const w = toMin(e.wake); return w != null && w <= 8 * 60; }).length;
-        if (earlyNights > 0) candidates.push({ score: earlyNights + 0.5, text: `${earlyNights} night${earlyNights === 1 ? '' : 's'} in bed before 11:30 this week` });
-        if (earlyMornings > 0) candidates.push({ score: earlyMornings + 0.5, text: `${earlyMornings} morning${earlyMornings === 1 ? '' : 's'} up before 8 this week` });
+        const goalBed = data.sleep.goalBedTime || '23:30';
+        const goalWake = data.sleep.goalWakeTime || '08:00';
+        let bt = toMin(goalBed) / 60; if (bt < 12) bt += 24;
+        const wt = toMin(goalWake);
+        const earlyNights = entries.filter(e => { const v = bedHourValue(e); return v != null && v <= bt; }).length;
+        const earlyMornings = entries.filter(e => { const w = toMin(e.wake); return w != null && w <= wt; }).length;
+        if (earlyNights > 0) candidates.push({ score: earlyNights + 0.5, text: `${earlyNights} night${earlyNights === 1 ? '' : 's'} in bed by ${fmtTime12(goalBed)} this week` });
+        if (earlyMornings > 0) candidates.push({ score: earlyMornings + 0.5, text: `${earlyMornings} morning${earlyMornings === 1 ? '' : 's'} up by ${fmtTime12(goalWake)} this week` });
+      }
+      if (!data.weight.paused && data.weight.goalTarget > 0) {
+        const wentries = [...data.weight.entries].filter(e => e.am != null || e.pm != null).sort((a, b) => (a.date < b.date ? 1 : -1));
+        if (wentries.length > 0) {
+          const latest = wentries[0].am ?? wentries[0].pm;
+          const diff = round1(latest - data.weight.goalTarget);
+          let text;
+          if (diff > 0) text = `${diff} kg to go to reach your goal weight`;
+          else if (diff < 0) text = `${Math.abs(diff)} kg under your goal weight`;
+          else text = `Right at your goal weight`;
+          candidates.push({ score: 2, text });
+        }
       }
       data.activities.forEach(a => {
         if (a.paused) return;
