@@ -4,412 +4,1079 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Second Half</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,opsz@1,6..72&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500&family=Inter:wght@400;500&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #E7E7E0; color: #2A2B26; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    :root {
+      --paper: #E7E7E0; --surface: #F1F1EB; --ink: #2A2B26; --muted: #83857A; --line: #D4D4CA;
+      --accent: #6F7F73; --accent-ink: #55634F; --accent-soft: rgba(111,127,115,0.13); --warn: #A8735B;
+      --gold: #B9985E; --silver: #9AA6B0; --bronze: #A9744F;
+    }
+    body { background: var(--paper); color: var(--ink); font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; }
     .wrap { max-width: 680px; margin: 0 auto; padding: 56px 26px 128px; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 28px; }
-    .title { font-family: 'Fraunces', serif; font-size: 42px; font-weight: 500; margin: 14px 0 20px; }
-    .subtitle { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #83857A; }
-    .note { font-style: italic; font-size: 16px; color: #83857A; margin: 18px 0 28px; line-height: 1.5; }
-    .panel { background: #F1F1EB; border-radius: 13px; padding: 28px; margin-top: 28px; }
-    .panel h2 { font-family: 'Fraunces', serif; font-size: 20px; margin-bottom: 14px; }
-    input, select { font-family: inherit; font-size: 14px; color: #2A2B26; background: none; border: none; border-bottom: 1px solid #D4D4CA; padding: 8px 0; width: 100%; }
-    input:focus, select:focus { outline: none; border-bottom-color: #6F7F73; }
-    input[type="time"], input[type="number"] { width: auto; min-width: 80px; }
-    .mini { font-family: inherit; font-size: 13px; background: rgba(111,127,115,0.13); color: #55634F; border: none; border-radius: 8px; padding: 8px 13px; cursor: pointer; margin-top: 12px; }
-    .mini:hover { background: rgba(111,127,115,0.22); }
-    .link { background: none; border: none; color: #83857A; font-size: 12px; cursor: pointer; font-family: inherit; padding: 0; }
-    .link:hover { color: #2A2B26; }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
-    .section { margin-top: 56px; }
-    .shead { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 500; border-bottom: 1px solid #D4D4CA; padding-bottom: 12px; margin-bottom: 10px; }
-    .card { padding: 22px 0; border-bottom: 1px solid #D4D4CA; }
-    .cname { flex: 1; font-family: 'Fraunces', serif; font-size: 18px; font-weight: 500; background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; color: #2A2B26; }
-    .cname:focus { outline: none; border-bottom-color: #6F7F73; }
-    .stat { font-size: 20px; font-family: 'Fraunces', serif; font-weight: 500; margin-top: 12px; }
-    .small { font-size: 12px; color: #83857A; margin-left: 8px; }
-    .msg { font-size: 13px; margin-top: 10px; }
-    .msg.err { color: #A8735B; }
-    .msg.ok { color: #55634F; }
-    .hidden { display: none; }
-    .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; font-style: italic; color: #83857A; }
-    .header-right { text-align: right; font-size: 12px; }
-    .foot { margin-top: 78px; font-style: italic; font-size: 16px; color: #83857A; text-align: center; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .eyebrow { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+    .title { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 40px; line-height: 1.04; margin: 14px 0 0; }
+    .note { font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 16px; color: var(--muted); margin: 16px 0 24px; line-height: 1.5; }
+
+    .editbtn { font-family: inherit; font-size: 13px; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid transparent; border-radius: 20px; padding: 8px 16px; cursor: pointer; white-space: nowrap; }
+    .editbtn.on { background: var(--accent); color: #fff; }
+
+    .quick { margin: 20px 0; }
+    .quickbox { display: flex; gap: 10px; align-items: center; }
+    .qinput { flex: 1 1 auto; font-family: inherit; font-size: 16px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; min-width: 0; }
+    .qinput::placeholder { color: var(--muted); }
+    .qinput:focus { outline: none; border-color: var(--accent); }
+    .qfb { font-size: 13px; margin-top: 9px; }
+    .qfb.ok { color: var(--accent-ink); }
+    .qfb.err { color: var(--warn); }
+
+    .due-banner { margin: 20px 0; padding: 15px 17px; background: var(--surface); border: 1px solid var(--line); border-radius: 13px; }
+    .due-banner h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 14px; margin: 0 0 7px; }
+    .due-item { font-size: 13px; color: var(--muted); padding: 3px 0; }
+    .due-item b { color: var(--warn); font-weight: 500; }
+
+    .backup-buttons { display: flex; gap: 8px; margin-bottom: 20px; }
+    .btn-backup { font-family: inherit; font-size: 12px; padding: 6px 11px; border-radius: 8px; border: none; background: var(--accent-soft); color: var(--accent-ink); cursor: pointer; }
+
+    .section { margin-top: 50px; }
+    .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 10px; }
+    .sec-head.edit { align-items: center; }
+    .h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 22px; }
+    .meta { font-size: 12px; color: var(--muted); }
+
+    .arrows { display: inline-flex; gap: 3px; }
+    .arrow { font-family: inherit; font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; }
+    .arrow:disabled { opacity: 0.3; cursor: default; }
+
+    .outrow { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .outname { flex: 1 1 auto; font-size: 15px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .outrow.grp .outname { color: var(--accent-ink); font-weight: 500; }
+    .outrow.leaf { padding-left: 22px; }
+
+    .card { padding: 22px 0; border-bottom: 1px solid var(--line); }
+    .card.paused { opacity: 0.5; }
+    .card-head { display: flex; align-items: center; gap: 10px; }
+    .cname { flex: 1 1 auto; font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 18px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; }
+    .cname:focus { outline: none; border-bottom-color: var(--accent); }
+    .btn-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 4px; }
+    .badge-pause { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+
+    .figure { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 24px; margin-top: 12px; }
+    .figure small { font-size: 14px; color: var(--muted); font-family: 'Inter', sans-serif; font-weight: 400; margin-left: 7px; }
+    .bar { height: 6px; background: var(--line); border-radius: 6px; overflow: hidden; margin: 10px 0; }
+    .bar-fill { height: 100%; background: var(--accent); border-radius: 6px; }
+    .pace { font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 15px; color: var(--muted); line-height: 1.45; }
+    .pace b { color: var(--accent-ink); font-weight: 400; font-style: normal; }
+
+    .chips { display: flex; gap: 7px; flex-wrap: wrap; margin: 12px 0 6px; }
+    .chip { font-family: inherit; font-size: 12px; padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+    .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .link { background: none; border: none; color: var(--muted); font-size: 12.5px; cursor: pointer; padding: 0; font-family: inherit; }
+    .mini { font-family: inherit; font-size: 13px; color: var(--accent-ink); background: var(--accent-soft); border: none; border-radius: 8px; padding: 8px 13px; cursor: pointer; }
+
+    input[type="text"]:not(.cname):not(.rname), input[type="number"], input[type="date"], input[type="time"], select {
+      font-family: inherit; font-size: 14px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+    }
+    input.short { width: 80px; }
+    input.coin-in { width: 52px; }
+    input.unit { width: 46px; text-align: center; }
+    .cname:focus, .rname:focus { outline: none; border-bottom-color: var(--accent); }
+
+    .panel { margin-top: 14px; padding: 15px; background: var(--surface); border-radius: 11px; display: flex; flex-direction: column; gap: 11px; }
+    .field { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+    .field label { min-width: 60px; }
+
+    .pips { display: flex; gap: 6px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+    .pip { width: 26px; height: 8px; border-radius: 5px; border: 1px solid var(--line); background: transparent; cursor: pointer; padding: 0; }
+    .pip.done { background: var(--accent); border-color: var(--accent); }
+    .pip.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+    .stage-now { font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 16px; color: var(--ink); margin-top: 2px; }
+
+    .routine { display: flex; align-items: center; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    .rname { flex: 1 1 130px; font-size: 16px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; }
+    .status { font-size: 13px; color: var(--muted); white-space: nowrap; }
+    .status.warn { color: var(--warn); }
+    .status.ok { color: var(--accent-ink); }
+
+    .group { border-bottom: 1px solid var(--line); }
+    .group-head { display: flex; align-items: center; gap: 8px; padding: 15px 0; }
+    .disc { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; }
+    .group-items { padding-left: 16px; border-left: 2px solid var(--line); margin: 0 0 14px 6px; }
+    .group-items .routine { border-bottom: 1px solid var(--line); }
+
+    .entry { display: flex; gap: 12px; font-size: 13px; color: var(--muted); padding: 5px 0; }
+    .entry b { color: var(--ink); font-weight: 500; min-width: 52px; }
+    .hist { margin-top: 12px; }
+
+    .add { display: flex; align-items: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .input { flex: 1 1 auto; font-size: 16px; font-family: inherit; color: var(--ink); background: transparent; border: none; border-bottom: 1px solid var(--line); padding: 8px 0; }
+
+    .foot { margin-top: 70px; font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 16px; color: var(--muted); text-align: center; }
+
+    .savings-top { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 8px; }
+    .jarwrap { position: relative; flex: 0 0 auto; }
+    .savetotal { flex: 1 1 auto; min-width: 130px; }
+    .cdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid; vertical-align: middle; margin-right: 5px; }
+
+    #importFile { display: none; }
   </style>
 </head>
 <body>
-  <div id="authScreen">
-    <div class="wrap">
-      <div class="subtitle">2026 · your own pace</div>
+  <div class="wrap">
+    <header>
+      <div class="topbar">
+        <div class="eyebrow">2026 · your own pace</div>
+        <button class="editbtn" id="editBtn" onclick="toggleEdit()">Edit</button>
+      </div>
       <h1 class="title">The second half</h1>
-      <p class="note">Track the small things. Sleep, weight, movement, savings, routines, projects — all in one quiet place.</p>
-      <div class="panel">
-        <h2>Log in</h2>
-        <form id="authForm">
-          <input type="email" id="emailInput" placeholder="your email" required />
-          <button type="submit" class="mini">send login link</button>
-        </form>
-        <div id="authMsg" class="msg hidden"></div>
-      </div>
+      <p class="note" id="headerNote">Log the small things as they happen. Pause anything you need a break from.</p>
+    </header>
+
+    <div class="backup-buttons">
+      <button class="btn-backup" onclick="exportData()">📥 Export backup</button>
+      <button class="btn-backup" onclick="document.getElementById('importFile').click()">📤 Import backup</button>
+      <input type="file" id="importFile" accept=".json" onchange="importData(event)" />
+      <span id="syncStatus" style="font-size:11px;color:var(--muted);margin-left:auto;align-self:center;">☁️ checking…</span>
     </div>
-  </div>
 
-  <div id="appScreen" class="wrap hidden">
-    <div class="topbar">
-      <div class="subtitle">2026 · your own pace</div>
-      <div class="header-right">
-        <div id="userEmail"></div>
-        <button id="logoutBtn" class="link">log out</button>
+    <div class="quick" id="quickWrap">
+      <div class="quickbox">
+        <input type="text" class="qinput" id="quickInput" placeholder='say it plainly — "瑜伽 20分钟", "骑马1次", "浇完花了"' onkeydown="if(event.key==='Enter') handleQuick()" />
+        <button class="mini" onclick="handleQuick()">log</button>
       </div>
+      <div id="quickFeedback"></div>
     </div>
-    <h1 class="title">The second half</h1>
-    <p class="note">Everything is saved to the cloud.</p>
 
-    <section class="section">
-      <div class="shead">Body</div>
-      <div class="card">
-        <div><strong>Sleep</strong></div>
-        <div id="sleepStatus" style="font-style: italic; font-size: 15px; color: #83857A; margin-top: 8px;">when did you sleep?</div>
-        <div class="row">
-          <span style="font-size: 12px; color: #83857A;">bed</span>
-          <input type="time" id="bedInput" />
-          <span style="font-size: 12px; color: #83857A;">wake</span>
-          <input type="time" id="wakeInput" />
-          <button class="mini" onclick="saveSleep()">save</button>
-        </div>
-      </div>
-      <div class="card">
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <strong style="flex: 1;">Weight</strong>
-          <input type="text" id="weightUnit" value="kg" style="width: 60px; flex: 0 0 auto;" />
-        </div>
-        <div id="weightStatus" style="font-style: italic; font-size: 15px; color: #83857A; margin-top: 8px;">morning & evening</div>
-        <div class="row">
-          <input type="number" step="0.1" id="weightAm" placeholder="am" style="width: 80px;" />
-          <input type="number" step="0.1" id="weightPm" placeholder="pm" style="width: 80px;" />
-          <button class="mini" onclick="saveWeight()">save</button>
-        </div>
-      </div>
-    </section>
+    <div id="dueBanner"></div>
 
-    <section class="section">
-      <div class="shead">Savings</div>
-      <div class="card">
-        <div><strong>Savings</strong></div>
-        <div class="stat" style="font-size: 26px;">$<span id="savingsBal">0</span></div>
-        <div class="row">
-          <span style="font-size: 12px; color: #83857A;">Coins</span>
-          <span style="color: #B9985E;">●</span><input type="number" id="cg" placeholder="0" style="width: 60px;" />
-          <span style="color: #9AA6B0;">●</span><input type="number" id="cs" placeholder="0" style="width: 60px;" />
-          <span style="color: #A9744F;">●</span><input type="number" id="cb" placeholder="0" style="width: 60px;" />
-        </div>
-        <div class="row">
-          <span style="font-size: 12px; color: #83857A;">For</span>
-          <input type="text" id="purpose" placeholder="what it's for" style="flex: 1;" />
-        </div>
-        <div class="row">
-          <button class="mini" onclick="deposit()">Deposit</button>
-          <button class="mini" onclick="withdraw()">Withdraw</button>
-        </div>
-      </div>
-    </section>
+    <div id="sectionsContainer"></div>
 
-    <section class="section">
-      <div class="shead">Movement</div>
-      <div id="activitiesList"></div>
-      <div class="card" style="border-bottom: none;">
-        <button class="mini" onclick="addActivity()">+ activity</button>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="shead">Projects</div>
-      <div id="projectsList"></div>
-      <div class="card" style="border-bottom: none;">
-        <button class="mini" onclick="addProject()">+ project</button>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="shead">Routines</div>
-      <div id="routinesList"></div>
-      <div class="card" style="border-bottom: none;">
-        <button class="mini" onclick="addRoutine()">+ routine</button>
-      </div>
-    </section>
-
-    <p class="foot">Steady is enough. Set aside what you need to; come back when you're ready.</p>
+    <p class="foot">Steady is enough. Come back when you've done a thing.</p>
   </div>
 
   <script>
-    const API_URL = 'https://qagmx1ivtxpzpfvfozdk.supabase.co/rest/v1';
-    const API_KEY = 'sb_publishable_1XZzc1JV8CPujd1zhcLcdQ_Hn6z646c';
-
     const uid = () => Math.random().toString(36).slice(2, 9);
-    const todayKey = () => {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    };
+    const DAY = 86400000;
+
+    function dateKey(d) {
+      const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    const todayKey = () => dateKey(new Date());
+    function parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+    function daysUntil(dateStr) { const t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((parseDate(dateStr) - t) / DAY); }
+    function fmtShort(s) { try { return parseDate(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch (e) { return s; } }
+    function fmtMinutes(min) { if (!min) return '0m'; const h = Math.floor(min / 60), m = Math.round(min % 60); return h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`; }
+    const round1 = (n) => Math.round(n * 10) / 10;
+    const toMin = (t) => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
+    function addByCadence(date, cadence) {
+      const x = new Date(date);
+      if (cadence === 'weekly') x.setDate(x.getDate() + 7);
+      else if (cadence === 'monthly') x.setMonth(x.getMonth() + 1);
+      else x.setFullYear(x.getFullYear() + 1);
+      return x;
+    }
+    function sleepDur(bed, wake) { const b = toMin(bed), w = toMin(wake); if (b == null || w == null) return null; let ww = w; if (ww <= b) ww += 1440; return (ww - b) / 60; }
+
+    const leaf = (name, cad, aliases = []) => ({ id: uid(), name, mode: 'cadence', cadence: cad, nextDate: null, history: [], paused: false, aliases });
+
+    const SECTION_TITLE = { body: 'Body', savings: 'Savings', movement: 'Movement', projects: 'Projects', routines: 'Routines' };
 
     const SEED = {
-      sleep: { entries: [] },
-      weight: { unit: 'kg', entries: [] },
+      sectionOrder: ['body', 'savings', 'movement', 'projects', 'routines'],
+      bodyOrder: ['sleep', 'weight'],
+      sleep: { entries: [], paused: false },
+      weight: { unit: 'kg', entries: [], paused: false },
       savings: { tx: [] },
-      activities: [{ id: uid(), name: 'Yoga', logs: [] }, { id: uid(), name: 'Walk', logs: [] }],
-      projects: [{ id: uid(), name: 'Portfolio', stages: ['Gather', 'Design', 'Polish'], current: 0, sessions: [] }],
-      routines: [{ id: uid(), name: 'Water plants', cadence: 'weekly', history: [] }],
+      activities: [
+        { id: uid(), name: 'Yoga', hasGoal: true, goalKind: 'days', target: 100, deadline: '2026-12-31', defaultMin: 30, aliases: ['瑜伽', 'yoga'], logs: [], paused: false },
+        { id: uid(), name: 'Brisk walk', hasGoal: true, goalKind: 'days', target: 120, deadline: '2026-12-31', defaultMin: 30, aliases: ['快走', '散步', '走路', 'walk'], logs: [], paused: false },
+        { id: uid(), name: 'Archery', hasGoal: false, goalKind: 'days', target: 0, deadline: '2026-12-31', defaultMin: 90, aliases: ['射箭', '箭', 'archery'], logs: [], paused: false },
+        { id: uid(), name: 'Horse riding', hasGoal: false, goalKind: 'days', target: 0, deadline: '2026-12-31', defaultMin: 60, aliases: ['骑马', '马', 'riding', 'horse'], logs: [], paused: false },
+      ],
+      projects: [
+        { id: uid(), name: 'Portfolio', stages: ['Gather work', 'Wireframe', 'Visual design', 'Write case studies', 'Polish'], current: 0, sessions: [], aliases: ['portfolio', '作品集'], paused: false },
+      ],
+      routines: [
+        { id: uid(), name: 'Chores', group: true, collapsed: false, paused: false, items: [
+          leaf('Water the plants', 'weekly', ['浇', '植物', '浇花', '花', 'water', 'plant']),
+          leaf('Laundry', 'weekly', ['洗衣', '衣服', 'laundry']),
+          leaf('Wash the car', 'monthly', ['洗车', '车', 'car']),
+          leaf('Deep clean the apartment', 'monthly', ['打扫', '大扫除', '扫除', 'clean']),
+          leaf('Change the sheets', 'monthly', ['床单', '换床单', 'sheets']),
+        ] },
+        leaf('Teeth cleaning', 'yearly', ['洗牙', '牙', 'teeth']),
+      ],
     };
 
-    let user = null;
-    let data = SEED;
-    let sessionToken = localStorage.getItem('hy_token');
+    let data = JSON.parse(localStorage.getItem('halfyear-v5') || JSON.stringify(SEED));
+    // fill in any missing fields for older saved data
+    if (!data.sectionOrder) data.sectionOrder = ['body', 'savings', 'movement', 'projects', 'routines'];
+    if (!data.bodyOrder) data.bodyOrder = ['sleep', 'weight'];
+    if (!data.savings) data.savings = { tx: [] };
+    let edit = false;
 
-    document.getElementById('authForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('emailInput').value;
-      localStorage.setItem('hy_email', email);
-      const msg = document.getElementById('authMsg');
-      msg.classList.remove('hidden');
-      msg.textContent = 'sending… (check email for link)';
-      msg.classList.add('ok');
-    });
-
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('hy_token');
-      localStorage.removeItem('hy_email');
-      location.reload();
-    });
-
-    const saveData = async () => {
-      if (!user) return;
+    // ---------------- Cloud sync (Supabase, no login) ----------------
+    const SUPABASE_URL = 'https://qagmx1ivtxpzpfvfozdk.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_1XZzc1JV8CPujd1zhcLcdQ_Hn6z646c';
+    const SYNC_ROW_ID = 'julia';
+    function supaHeaders(extra) {
+      return Object.assign({
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      }, extra || {});
+    }
+    function setSyncStatus(text) {
+      const el = document.getElementById('syncStatus');
+      if (el) el.textContent = text;
+    }
+    async function supaLoad() {
+      setSyncStatus('☁️ checking…');
       try {
-        const res = await fetch(`${API_URL}/tracking_data`, {
-          method: 'UPSERT',
-          headers: { 'Authorization': `Bearer ${sessionToken}`, 'apikey': API_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: user.id, data })
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/app_data?id=eq.${SYNC_ROW_ID}&select=data,updated_at`, {
+          headers: supaHeaders(),
         });
-      } catch (e) { }
-    };
+        if (!res.ok) throw new Error('load failed: ' + res.status);
+        const rows = await res.json();
+        if (rows && rows.length > 0 && rows[0].data) {
+          data = rows[0].data;
+          if (!data.sectionOrder) data.sectionOrder = ['body', 'savings', 'movement', 'projects', 'routines'];
+          if (!data.bodyOrder) data.bodyOrder = ['sleep', 'weight'];
+          if (!data.savings) data.savings = { tx: [] };
+          localStorage.setItem('halfyear-v5', JSON.stringify(data));
+          setSyncStatus('☁️ synced');
+        } else {
+          // no cloud row yet — push what we have locally to create it
+          await supaSave();
+        }
+      } catch (e) {
+        setSyncStatus('⚠️ offline — using local copy');
+      }
+      render();
+    }
+    async function supaSave() {
+      setSyncStatus('☁️ saving…');
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/app_data`, {
+          method: 'POST',
+          headers: supaHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+          body: JSON.stringify({ id: SYNC_ROW_ID, data, updated_at: new Date().toISOString() }),
+        });
+        if (!res.ok) throw new Error('save failed: ' + res.status);
+        setSyncStatus('☁️ synced');
+      } catch (e) {
+        setSyncStatus('⚠️ saved locally only');
+      }
+    }
+    let syncTimer = null;
+    function supaSaveDebounced() {
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(supaSave, 900);
+    }
 
-    const saveSleep = () => {
+    function saveData() {
+      localStorage.setItem('halfyear-v5', JSON.stringify(data));
+      supaSaveDebounced();
+      render();
+    }
+    function toggleEdit() {
+      edit = !edit;
+      document.getElementById('editBtn').textContent = edit ? 'Confirm' : 'Edit';
+      document.getElementById('editBtn').classList.toggle('on', edit);
+      document.getElementById('headerNote').textContent = edit
+        ? 'Use the arrows to reorder sections and items. Press Confirm when done.'
+        : 'Log the small things as they happen. Pause anything you need a break from.';
+      document.getElementById('quickWrap').style.display = edit ? 'none' : '';
+      document.getElementById('dueBanner').style.display = edit ? 'none' : '';
+      render();
+    }
+
+    function exportData() {
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tracker-backup-${todayKey()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          data = JSON.parse(ev.target.result);
+          if (!data.sectionOrder) data.sectionOrder = ['body', 'savings', 'movement', 'projects', 'routines'];
+          if (!data.bodyOrder) data.bodyOrder = ['sleep', 'weight'];
+          if (!data.savings) data.savings = { tx: [] };
+          saveData();
+          alert('✓ Data imported successfully!');
+        } catch (err) {
+          alert('✗ Failed to import. Make sure it\'s a valid backup file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function arrMove(arr, idx, dir) {
+      const j = idx + dir;
+      if (j < 0 || j >= arr.length) return arr;
+      const c = arr.slice();
+      [c[idx], c[j]] = [c[j], c[idx]];
+      return c;
+    }
+
+    function render() {
+      const el = document.getElementById('sectionsContainer');
+      let html = '';
+      data.sectionOrder.forEach((key, i) => {
+        html += renderSection(key, i, data.sectionOrder.length);
+      });
+      el.innerHTML = html;
+
+      renderDueBanner();
+    }
+
+    function renderSection(key, idx, total) {
+      let head = `<div class="sec-head${edit ? ' edit' : ''}"><h2 class="h2">${SECTION_TITLE[key]}</h2>`;
+      if (edit) {
+        head += `<span class="arrows">
+          <button class="arrow" ${idx === 0 ? 'disabled' : ''} onclick="moveSection(${idx},-1)">↑</button>
+          <button class="arrow" ${idx === total - 1 ? 'disabled' : ''} onclick="moveSection(${idx},1)">↓</button>
+        </span>`;
+      } else {
+        head += `<span class="meta">${sectionMeta(key)}</span>`;
+      }
+      head += `</div>`;
+
+      let body = '';
+      if (key === 'body') body = renderBody();
+      else if (key === 'savings') body = renderSavings();
+      else if (key === 'movement') body = renderMovement();
+      else if (key === 'projects') body = renderProjects();
+      else if (key === 'routines') body = renderRoutines();
+
+      return `<section class="section">${head}${body}</section>`;
+    }
+    function sectionMeta(key) {
+      if (key === 'body') return 'sleep & weight, over time';
+      if (key === 'savings') return 'a jar of gold, silver & bronze';
+      if (key === 'movement') return 'by day, time, or kind';
+      if (key === 'projects') return 'time logged, stage by stage';
+      if (key === 'routines') return 'grouped, on a rhythm or a set day';
+      return '';
+    }
+    function moveSection(idx, dir) { data.sectionOrder = arrMove(data.sectionOrder, idx, dir); saveData(); }
+
+    // ---------------- Body (Sleep / Weight) ----------------
+    function renderBody() {
+      if (edit) {
+        return data.bodyOrder.map((k, i) => `
+          <div class="outrow">
+            <span class="outname">${k === 'sleep' ? 'Sleep' : 'Weight'}</span>
+            <span class="arrows">
+              <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveBody(${i},-1)">↑</button>
+              <button class="arrow" ${i === data.bodyOrder.length - 1 ? 'disabled' : ''} onclick="moveBody(${i},1)">↓</button>
+            </span>
+          </div>`).join('');
+      }
+      return data.bodyOrder.map(k => k === 'sleep' ? renderSleepCard() : renderWeightCard()).join('');
+    }
+    function moveBody(idx, dir) { data.bodyOrder = arrMove(data.bodyOrder, idx, dir); saveData(); }
+
+    function renderSleepCard() {
+      const today = todayKey();
+      const te = data.sleep.entries.find(e => e.date === today);
+      let html = `<div class="card${data.sleep.paused ? ' paused' : ''}">
+        <div class="card-head">
+          <span class="cname" style="border-bottom:none;">Sleep</span>
+          ${data.sleep.paused ? '<span class="badge-pause">paused</span>' : ''}
+          <button class="link" onclick="toggleSleepPause()">${data.sleep.paused ? 'resume' : 'pause'}</button>
+        </div>`;
+      if (!data.sleep.paused) {
+        const dur = te && sleepDur(te.bed, te.wake);
+        html += `<div class="pace" style="margin-top:4px;">
+          ${te ? `last night: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}` : 'log when you went to bed and woke.'}
+        </div>
+        <div class="row">
+          <span style="font-size:12px;color:var(--muted);">to bed</span>
+          <input type="time" id="bedInput" />
+          <span style="font-size:12px;color:var(--muted);">up at</span>
+          <input type="time" id="wakeInput" />
+          <button class="mini" onclick="saveSleep()">save last night</button>
+        </div>`;
+      }
+      html += `</div>`;
+      return html;
+    }
+    function saveSleep() {
       const bed = document.getElementById('bedInput').value;
       const wake = document.getElementById('wakeInput').value;
       if (!bed && !wake) return;
-      const today = todayKey();
-      data.sleep.entries = data.sleep.entries.filter(e => e.date !== today);
-      data.sleep.entries.push({ date: today, bed, wake });
+      data.sleep.entries = data.sleep.entries.filter(e => e.date !== todayKey());
+      data.sleep.entries.push({ date: todayKey(), bed: bed || '', wake: wake || '' });
       saveData();
-      document.getElementById('sleepStatus').textContent = `${bed} → ${wake}`;
-      document.getElementById('bedInput').value = '';
-      document.getElementById('wakeInput').value = '';
-    };
+    }
+    function toggleSleepPause() { data.sleep.paused = !data.sleep.paused; saveData(); }
 
-    const saveWeight = () => {
+    function renderWeightCard() {
+      const today = todayKey();
+      const te = data.weight.entries.find(e => e.date === today);
+      let html = `<div class="card${data.weight.paused ? ' paused' : ''}">
+        <div class="card-head">
+          <span class="cname" style="border-bottom:none;flex:0 0 auto;">Weight</span>
+          ${!data.weight.paused ? `<input type="text" class="unit" id="weightUnit" value="${data.weight.unit}" onchange="updateWeightUnit(this.value)" />` : ''}
+          ${data.weight.paused ? '<span class="badge-pause">paused</span>' : ''}
+          <span style="flex:1;"></span>
+          <button class="link" onclick="toggleWeightPause()">${data.weight.paused ? 'resume' : 'pause'}</button>
+        </div>`;
+      if (!data.weight.paused) {
+        html += `<div class="pace" style="margin-top:4px;">
+          ${te ? `today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (${data.weight.unit})` : `two readings a day, morning and evening (${data.weight.unit}).`}
+        </div>
+        <div class="row">
+          <span style="font-size:12px;color:var(--muted);">morning</span>
+          <input type="number" step="0.1" class="short" id="weightAm" />
+          <span style="font-size:12px;color:var(--muted);">evening</span>
+          <input type="number" step="0.1" class="short" id="weightPm" />
+          <button class="mini" onclick="saveWeight()">save today</button>
+        </div>`;
+      }
+      html += `</div>`;
+      return html;
+    }
+    function updateWeightUnit(v) { data.weight.unit = v; saveData(); }
+    function saveWeight() {
       const am = document.getElementById('weightAm').value;
       const pm = document.getElementById('weightPm').value;
       if (!am && !pm) return;
-      const today = todayKey();
-      data.weight.unit = document.getElementById('weightUnit').value;
-      data.weight.entries = data.weight.entries.filter(e => e.date !== today);
-      data.weight.entries.push({ date: today, am, pm });
+      data.weight.entries = data.weight.entries.filter(e => e.date !== todayKey());
+      data.weight.entries.push({ date: todayKey(), am: am ? parseFloat(am) : null, pm: pm ? parseFloat(pm) : null });
       saveData();
-      document.getElementById('weightStatus').textContent = `${am} / ${pm}`;
-      document.getElementById('weightAm').value = '';
-      document.getElementById('weightPm').value = '';
-    };
+    }
+    function toggleWeightPause() { data.weight.paused = !data.weight.paused; saveData(); }
 
-    const updateSavings = () => {
-      const bal = data.savings.tx.reduce((s, t) => s + (t.type === 'deposit' ? t.amount : -t.amount), 0);
-      document.getElementById('savingsBal').textContent = bal;
-    };
+    // ---------------- Savings (coin jar) ----------------
+    function coinSummary(c) {
+      if (!c) return null;
+      const p = [];
+      if (c.g) p.push(`${c.g}×gold`); if (c.s) p.push(`${c.s}×silver`); if (c.b) p.push(`${c.b}×bronze`);
+      return p.join(' · ');
+    }
+    function renderSavings() {
+      const tx = data.savings.tx;
+      const balance = tx.reduce((s, t) => s + (t.type === 'deposit' ? t.amount : -t.amount), 0);
+      const gold = Math.floor(balance / 1000), rem = balance - gold * 1000;
+      const silver = Math.floor(rem / 500), rem2 = rem - silver * 500;
+      const bronze = Math.floor(rem2 / 100), loose = rem2 - bronze * 100;
 
-    const deposit = () => {
-      const g = +document.getElementById('cg').value || 0;
-      const s = +document.getElementById('cs').value || 0;
-      const b = +document.getElementById('cb').value || 0;
-      const amount = g * 1000 + s * 500 + b * 100;
-      const purpose = document.getElementById('purpose').value;
-      if (amount <= 0) return;
+      const count = gold + silver + bronze, shown = Math.min(count, 54);
+      const innerX = 48, innerW = 104, jarBottom = 188, jarTop = 64, innerH = jarBottom - jarTop;
+      const cols = 4, gap = 4;
+      let d = (innerW - gap * (cols - 1)) / cols;
+      const rows = Math.max(1, Math.ceil(shown / cols));
+      const maxD = (innerH - gap * (rows - 1)) / rows;
+      if (maxD < d) d = Math.max(7, maxD);
+      const startX = innerX + (innerW - (cols * d + (cols - 1) * gap)) / 2;
+      let coinsSvg = '';
+      for (let i = 0; i < shown; i++) {
+        const row = Math.floor(i / cols), col = i % cols;
+        const kind = i < gold ? 'gold' : i < gold + silver ? 'silver' : 'bronze';
+        const col_ = kind === 'gold' ? 'var(--gold)' : kind === 'silver' ? 'var(--silver)' : 'var(--bronze)';
+        const cx = startX + col * (d + gap) + d / 2, cy = jarBottom - row * (d + gap) - d / 2, r = d / 2;
+        coinsSvg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col_}" stroke-width="1.4" />
+          <circle cx="${cx}" cy="${cy}" r="${r * 0.56}" fill="none" stroke="${col_}" stroke-width="0.9" />`;
+      }
+
+      let html = `<div class="card">
+        <div class="savings-top">
+          <div class="jarwrap">
+            <svg viewBox="0 0 200 210" width="160" height="168" aria-label="Savings jar">
+              <path d="M40 64 L40 172 Q40 190 58 190 L142 190 Q160 190 160 172 L160 64 Z" fill="rgba(255,255,255,0.22)" stroke="var(--muted)" stroke-width="1.5" />
+              <path d="M34 48 Q34 42 41 42 L159 42 Q166 42 166 48 L166 52 Q166 58 159 58 L41 58 Q34 58 34 52 Z" fill="none" stroke="var(--muted)" stroke-width="1.5" />
+              <path d="M40 64 Q100 72 160 64" fill="none" stroke="var(--muted)" stroke-width="1" opacity="0.6" />
+              ${coinsSvg}
+            </svg>
+          </div>
+          <div class="savetotal">
+            <div class="figure" style="margin-top:0;font-size:28px;">$${balance.toLocaleString()}</div>
+            <div class="pace">${gold} gold · ${silver} silver · ${bronze} bronze${loose ? ` · $${loose} loose` : ''}${count > shown ? ` · showing ${shown}` : ''}</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="field"><label>Coins</label>
+            <span class="cdot" style="border-color:var(--gold);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="coinG" />
+            <span class="cdot" style="border-color:var(--silver);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="coinS" />
+            <span class="cdot" style="border-color:var(--bronze);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="coinB" />
+          </div>
+          <div class="field"><label>For</label><input type="text" style="flex:1 1 120px;" id="coinPurpose" placeholder="what it's for (required to withdraw)" /></div>
+          <div class="row">
+            <button class="mini" onclick="savingsDeposit()">Deposit</button>
+            <button class="mini" onclick="savingsWithdraw()">Withdraw</button>
+            <span style="font-size:12px;color:var(--muted);margin-left:4px;">gold $1000 · silver $500 · bronze $100</span>
+          </div>
+        </div>
+        <div id="savingsErr"></div>`;
+      if (tx.length > 0) {
+        html += `<div class="row"><button class="link" onclick="toggleSavingsHist()">${data.savings.showHist ? 'hide record' : 'record'}</button></div>`;
+      }
+      if (data.savings.showHist) {
+        const recent = [...tx].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 8);
+        html += `<div class="hist">`;
+        for (const t of recent) {
+          html += `<div class="entry">
+            <b>${fmtShort(t.date)}</b>
+            <span style="color:${t.type === 'deposit' ? 'var(--accent-ink)' : 'var(--warn)'};min-width:64px;">${t.type === 'deposit' ? '+' : '−'}$${t.amount.toLocaleString()}</span>
+            <span>${t.type === 'withdraw' ? t.purpose : (coinSummary(t.coins) || 'deposit')}</span>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+      return html;
+    }
+    function toggleSavingsHist() { data.savings.showHist = !data.savings.showHist; saveData(); }
+    function readCoins() {
+      const g = +document.getElementById('coinG').value || 0;
+      const s = +document.getElementById('coinS').value || 0;
+      const b = +document.getElementById('coinB').value || 0;
+      return { g, s, b, amount: g * 1000 + s * 500 + b * 100 };
+    }
+    function savingsErr(msg) { document.getElementById('savingsErr').innerHTML = msg ? `<div class="qfb err" style="margin-top:10px;">${msg}</div>` : ''; }
+    function savingsDeposit() {
+      const { g, s, b, amount } = readCoins();
+      if (amount <= 0) { savingsErr('Pick at least one coin.'); return; }
+      const purpose = document.getElementById('coinPurpose').value.trim();
       data.savings.tx.push({ id: uid(), type: 'deposit', amount, coins: { g, s, b }, purpose, date: todayKey() });
       saveData();
-      document.getElementById('cg').value = '';
-      document.getElementById('cs').value = '';
-      document.getElementById('cb').value = '';
-      document.getElementById('purpose').value = '';
-      updateSavings();
-    };
-
-    const withdraw = () => {
-      const g = +document.getElementById('cg').value || 0;
-      const s = +document.getElementById('cs').value || 0;
-      const b = +document.getElementById('cb').value || 0;
-      const amount = g * 1000 + s * 500 + b * 100;
-      const purpose = document.getElementById('purpose').value;
-      if (amount <= 0 || !purpose) return;
-      const bal = data.savings.tx.reduce((s, t) => s + (t.type === 'deposit' ? t.amount : -t.amount), 0);
-      if (amount > bal) return;
+    }
+    function savingsWithdraw() {
+      const { g, s, b, amount } = readCoins();
+      const balance = data.savings.tx.reduce((s2, t) => s2 + (t.type === 'deposit' ? t.amount : -t.amount), 0);
+      if (amount <= 0) { savingsErr('Pick which coins to take out.'); return; }
+      if (amount > balance) { savingsErr("That's more than the jar holds."); return; }
+      const purpose = document.getElementById('coinPurpose').value.trim();
+      if (!purpose) { savingsErr("Add what it's for."); return; }
       data.savings.tx.push({ id: uid(), type: 'withdraw', amount, coins: { g, s, b }, purpose, date: todayKey() });
       saveData();
-      document.getElementById('cg').value = '';
-      document.getElementById('cs').value = '';
-      document.getElementById('cb').value = '';
-      document.getElementById('purpose').value = '';
-      updateSavings();
-    };
+    }
 
-    const renderActivities = () => {
-      const list = document.getElementById('activitiesList');
-      list.innerHTML = data.activities.map(a => {
-        const totalMin = a.logs.reduce((s, l) => s + (l.minutes || 0), 0);
-        const days = new Set(a.logs.map(l => l.date)).size;
-        return `<div class="card"><div style="display: flex; gap: 10px;"><input type="text" value="${a.name}" onchange="updateActivity('${a.id}', this.value)" class="cname" /><button class="link" onclick="removeActivity('${a.id}')">✕</button></div><div class="stat">${days}<span class="small">days</span> · ${Math.floor(totalMin/60)}h ${totalMin%60}m<span class="small">total</span></div><div class="row"><input type="number" id="actMin${a.id}" placeholder="min" style="width: 80px;" /><button class="mini" onclick="logActivity('${a.id}')">log</button></div></div>`;
-      }).join('');
-    };
-
-    const addActivity = () => {
-      data.activities.push({ id: uid(), name: 'New activity', logs: [] });
-      saveData();
-      renderActivities();
-    };
-
-    const updateActivity = (id, name) => {
-      const act = data.activities.find(a => a.id === id);
-      if (act) { act.name = name; saveData(); }
-    };
-
-    const removeActivity = (id) => {
-      data.activities = data.activities.filter(a => a.id !== id);
-      saveData();
-      renderActivities();
-    };
-
-    const logActivity = (id) => {
-      const mins = parseFloat(document.getElementById(`actMin${id}`).value);
-      if (!mins) return;
-      const act = data.activities.find(a => a.id === id);
-      if (act) {
-        act.logs.push({ id: uid(), date: todayKey(), minutes: mins });
-        saveData();
-        document.getElementById(`actMin${id}`).value = '';
-        renderActivities();
+    // ---------------- Movement (activities) ----------------
+    function renderMovement() {
+      if (edit) {
+        let html = data.activities.map((a, i) => `
+          <div class="outrow">
+            <span class="outname">${a.name || 'untitled'}</span>
+            <span class="arrows">
+              <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveActivity(${i},-1)">↑</button>
+              <button class="arrow" ${i === data.activities.length - 1 ? 'disabled' : ''} onclick="moveActivity(${i},1)">↓</button>
+            </span>
+            <button class="btn-x" onclick="removeActivity('${a.id}')">✕</button>
+          </div>`).join('');
+        return html;
       }
-    };
-
-    const renderProjects = () => {
-      const list = document.getElementById('projectsList');
-      list.innerHTML = data.projects.map(p => {
-        const totalMin = p.sessions.reduce((s, x) => s + (x.minutes || 0), 0);
-        const pct = p.stages.length > 0 ? Math.min(p.current / p.stages.length, 1) : 0;
-        return `<div class="card"><div style="display: flex; gap: 10px;"><input type="text" value="${p.name}" onchange="updateProject('${p.id}', this.value)" class="cname" /><button class="link" onclick="removeProject('${p.id}')">✕</button></div><div style="height: 6px; background: #D4D4CA; border-radius: 6px; margin-top: 12px; overflow: hidden;"><div style="height: 100%; background: #6F7F73; width: ${pct * 100}%; transition: width 0.35s;"></div></div><div style="font-style: italic; font-size: 14px; color: #83857A; margin-top: 8px;">Stage ${p.current + 1} of ${p.stages.length} · ${Math.floor(totalMin/60)}h ${totalMin%60}m</div><div class="row"><button class="mini" onclick="nextStage('${p.id}')">next</button><input type="number" id="projMin${p.id}" placeholder="min" style="width: 80px;" /><button class="mini" onclick="logProject('${p.id}')">log</button></div></div>`;
-      }).join('');
-    };
-
-    const addProject = () => {
-      data.projects.push({ id: uid(), name: 'New project', stages: ['Start', 'Middle', 'End'], current: 0, sessions: [] });
+      let html = '';
+      const active = data.activities.filter(a => !a.paused);
+      if (active.length > 0) html += renderMovementOverview(active);
+      for (const act of data.activities) {
+        const days = new Set(act.logs.map(l => l.date)).size;
+        const totalMin = act.logs.reduce((s, l) => s + (l.minutes || 0), 0);
+        const sessions = act.logs.length;
+        html += `<div class="card${act.paused ? ' paused' : ''}">
+          <div class="card-head">
+            <input type="text" class="cname" value="${act.name}" onchange="updateActivity('${act.id}', 'name', this.value)" />
+            ${act.paused ? '<span class="badge-pause">paused</span>' : ''}
+          </div>
+          <div class="figure" style="font-size:20px;">${days}<small>days</small> · ${fmtMinutes(totalMin)}<small>total</small> · ${sessions}<small>sessions</small></div>`;
+        if (act.hasGoal && !act.paused) {
+          const cur = act.goalKind === 'hours' ? totalMin / 60 : act.goalKind === 'sessions' ? sessions : days;
+          const rem = Math.max(act.target - cur, 0);
+          const dLeft = Math.max(daysUntil(act.deadline), 0);
+          const pw = dLeft > 0 ? rem / (dLeft / 7) : rem;
+          const pct = act.target > 0 ? Math.min(cur / act.target, 1) : 0;
+          html += `<div class="bar"><div class="bar-fill" style="width:${pct * 100}%;"></div></div>
+            <div class="pace">${rem <= 0 ? `Goal reached — <b>${round1(cur)} ${act.goalKind}</b>.` : `${round1(cur)} of ${act.target} ${act.goalKind} · about <b>${round1(pw)} a week</b> to reach it by ${fmtShort(act.deadline)}`}</div>`;
+        }
+        if (!act.paused) {
+          html += `<div class="row">
+            <input type="number" min="0" placeholder="min" class="short" id="actMin${act.id}" />
+            <button class="mini" onclick="logActivity('${act.id}')">log today</button>
+            <button class="link" onclick="toggleActivityGoal('${act.id}')">${act.showGoalPanel ? 'close' : 'goal'}</button>
+            <button class="link" onclick="toggleActivityPause('${act.id}')">pause</button>
+          </div>`;
+          if (act.showGoalPanel) {
+            html += `<div class="panel">
+              <div class="field"><label>1 session</label><input type="number" min="0" class="short" value="${act.defaultMin ?? 30}" onchange="updateActivity('${act.id}', 'defaultMin', Number(this.value))" /><span style="font-size:12px;color:var(--muted);">min · used for "1次" &amp; bare logs</span></div>
+              <div class="field"><label>Match</label><input type="text" style="flex:1 1 120px;" value="${(act.aliases || []).join(' ')}" placeholder="words the quick box should match" onchange="updateActivity('${act.id}', 'aliases', this.value.split(/[\\s,，、]+/).filter(Boolean))" /></div>
+              <div class="field"><label>Goal</label><button class="chip${act.hasGoal ? ' on' : ''}" onclick="toggleActivityHasGoal('${act.id}')">${act.hasGoal ? 'on' : 'off'}</button></div>
+              ${act.hasGoal ? `
+              <div class="field"><label>Reach</label><input type="number" min="0" class="short" value="${act.target}" onchange="updateActivity('${act.id}', 'target', Number(this.value))" />
+                <select onchange="updateActivity('${act.id}', 'goalKind', this.value)">
+                  <option value="days" ${act.goalKind==='days'?'selected':''}>days</option>
+                  <option value="hours" ${act.goalKind==='hours'?'selected':''}>hours</option>
+                  <option value="sessions" ${act.goalKind==='sessions'?'selected':''}>sessions</option>
+                </select></div>
+              <div class="field"><label>By</label><input type="date" value="${act.deadline}" onchange="updateActivity('${act.id}', 'deadline', this.value)" /></div>` : ''}
+            </div>`;
+          }
+          if (act.logs.length > 0) {
+            html += `<div class="row"><button class="link" onclick="toggleActivityHist('${act.id}')">${act.showHist ? 'hide record' : 'record'}</button></div>`;
+            if (act.showHist) {
+              const recent = [...act.logs].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6);
+              html += `<div class="hist">`;
+              for (const l of recent) {
+                html += `<div class="entry"><b>${fmtShort(l.date)}</b><span>${l.minutes ? fmtMinutes(l.minutes) : 'logged'}</span><button class="link" style="margin-left:auto;" onclick="removeActivityLog('${act.id}','${l.id}')">remove</button></div>`;
+              }
+              html += `</div>`;
+            }
+          }
+        } else {
+          html += `<div class="row"><button class="link" onclick="toggleActivityPause('${act.id}')">resume</button></div>`;
+        }
+        html += `</div>`;
+      }
+      html += `<div class="add"><input type="text" class="input" id="actDraft" placeholder="add an activity…" onkeydown="if(event.key==='Enter') addActivity()" /></div>`;
+      return html;
+    }
+    function renderMovementOverview(active) {
+      const by = window._movementBy || 'days';
+      const rows = active.map(a => {
+        const days = new Set(a.logs.map(l => l.date)).size;
+        const mins = a.logs.reduce((s, l) => s + (l.minutes || 0), 0);
+        return { name: a.name, val: by === 'days' ? days : by === 'time' ? mins / 60 : a.logs.length };
+      });
+      const max = Math.max(1, ...rows.map(r => r.val));
+      const fmt = by === 'time' ? (v) => `${round1(v)}h` : (v) => `${Math.round(v)}`;
+      let html = `<div style="margin-bottom:8px;"><div class="chips">
+        ${[['days','by days'],['time','by time'],['sessions','by sessions']].map(([k,l]) => `<button class="chip${by===k?' on':''}" onclick="setMovementBy('${k}')">${l}</button>`).join('')}
+      </div>`;
+      for (const r of rows) {
+        html += `<div class="row" style="margin-top:9px;"><span style="flex:0 0 96px;font-size:13px;color:var(--ink);">${r.name}</span>
+          <span style="flex:1 1 auto;height:7px;background:var(--line);border-radius:6px;overflow:hidden;"><span style="display:block;height:100%;background:var(--accent);border-radius:6px;width:${(r.val/max)*100}%;"></span></span>
+          <span style="flex:0 0 auto;font-size:13px;color:var(--muted);width:44px;text-align:right;">${fmt(r.val)}</span></div>`;
+      }
+      html += `</div>`;
+      return html;
+    }
+    function setMovementBy(k) { window._movementBy = k; render(); }
+    function moveActivity(idx, dir) { data.activities = arrMove(data.activities, idx, dir); saveData(); }
+    function updateActivity(id, field, value) { const a = data.activities.find(x => x.id === id); if (a) { a[field] = value; saveData(); } }
+    function removeActivity(id) { data.activities = data.activities.filter(a => a.id !== id); saveData(); }
+    function logActivity(id) {
+      const mins = parseFloat(document.getElementById(`actMin${id}`).value);
+      const a = data.activities.find(x => x.id === id);
+      if (a) { a.logs.push({ id: uid(), date: todayKey(), minutes: mins || 0 }); saveData(); }
+    }
+    function removeActivityLog(actId, logId) { const a = data.activities.find(x => x.id === actId); if (a) { a.logs = a.logs.filter(l => l.id !== logId); saveData(); } }
+    function toggleActivityGoal(id) { const a = data.activities.find(x => x.id === id); if (a) { a.showGoalPanel = !a.showGoalPanel; saveData(); } }
+    function toggleActivityHasGoal(id) { const a = data.activities.find(x => x.id === id); if (a) { a.hasGoal = !a.hasGoal; saveData(); } }
+    function toggleActivityPause(id) { const a = data.activities.find(x => x.id === id); if (a) { a.paused = !a.paused; saveData(); } }
+    function toggleActivityHist(id) { const a = data.activities.find(x => x.id === id); if (a) { a.showHist = !a.showHist; saveData(); } }
+    function addActivity() {
+      const input = document.getElementById('actDraft');
+      const name = input.value.trim();
+      if (!name) return;
+      data.activities.push({ id: uid(), name, hasGoal: false, goalKind: 'days', target: 0, deadline: '2026-12-31', defaultMin: 30, aliases: [], logs: [], paused: false });
       saveData();
-      renderProjects();
-    };
+    }
 
-    const updateProject = (id, name) => {
-      const p = data.projects.find(x => x.id === id);
-      if (p) { p.name = name; saveData(); }
-    };
-
-    const removeProject = (id) => {
-      data.projects = data.projects.filter(p => p.id !== id);
-      saveData();
-      renderProjects();
-    };
-
-    const nextStage = (id) => {
-      const p = data.projects.find(x => x.id === id);
-      if (p && p.current < p.stages.length) { p.current++; saveData(); renderProjects(); }
-    };
-
-    const logProject = (id) => {
+    // ---------------- Projects ----------------
+    function renderProjects() {
+      if (edit) {
+        return data.projects.map((p, i) => `
+          <div class="outrow">
+            <span class="outname">${p.name || 'untitled'}</span>
+            <span class="arrows">
+              <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveProject(${i},-1)">↑</button>
+              <button class="arrow" ${i === data.projects.length - 1 ? 'disabled' : ''} onclick="moveProject(${i},1)">↓</button>
+            </span>
+            <button class="btn-x" onclick="removeProject('${p.id}')">✕</button>
+          </div>`).join('') + `<div class="add"></div>`;
+      }
+      let html = '';
+      for (const proj of data.projects) {
+        const n = proj.stages.length;
+        const current = Math.min(proj.current, n);
+        const allDone = current >= n && n > 0;
+        const totalMin = proj.sessions.reduce((s, x) => s + (x.minutes || 0), 0);
+        const pct = n > 0 ? current / n : 0;
+        html += `<div class="card${proj.paused ? ' paused' : ''}">
+          <div class="card-head">
+            <input type="text" class="cname" value="${proj.name}" onchange="updateProject('${proj.id}', 'name', this.value)" />
+            ${proj.paused ? '<span class="badge-pause">paused</span>' : ''}
+          </div>`;
+        if (!proj.paused) {
+          html += `<div class="pips">`;
+          for (let i = 0; i < proj.stages.length; i++) {
+            const cls = i < current ? 'done' : (i === current && !allDone ? 'active' : '');
+            html += `<button class="pip ${cls}" onclick="setProjectStage('${proj.id}', ${i})" title="${proj.stages[i]}"></button>`;
+          }
+          html += `</div>
+            <div class="stage-now">${n === 0 ? 'No stages yet.' : allDone ? 'All stages complete.' : `Stage ${current + 1} of ${n} — ${proj.stages[current]}`}</div>
+            <div class="bar" style="margin-top:10px;"><div class="bar-fill" style="width:${pct * 100}%;"></div></div>
+            <div class="pace">${fmtMinutes(totalMin)} over ${proj.sessions.length} session${proj.sessions.length === 1 ? '' : 's'}</div>
+            <div class="row">
+              <input type="number" min="0" placeholder="min" class="short" id="projMin${proj.id}" />
+              <input type="text" placeholder="what you did (optional)" id="projNote${proj.id}" />
+              <button class="mini" onclick="logProjectSession('${proj.id}')">log session</button>
+            </div>
+            <div class="row">
+              ${!allDone && n > 0 ? `<button class="link" onclick="setProjectStage('${proj.id}', ${current + 1})">finish this stage →</button>` : ''}
+              ${current > 0 ? `<button class="link" onclick="setProjectStage('${proj.id}', ${current - 1})">← step back</button>` : ''}
+              <button class="link" onclick="toggleProjectStages('${proj.id}')">${proj.showStages ? 'close' : 'edit stages'}</button>
+              ${proj.sessions.length > 0 ? `<button class="link" onclick="toggleProjectHist('${proj.id}')">${proj.showHist ? 'hide record' : 'record'}</button>` : ''}
+              <button class="link" onclick="toggleProjectPause('${proj.id}')">pause</button>
+            </div>`;
+          if (proj.showStages) {
+            html += `<div class="panel">`;
+            proj.stages.forEach((s, i) => {
+              html += `<div class="field"><input type="text" style="flex:1;" value="${s}" onchange="updateProjectStage('${proj.id}',${i},this.value)" /><button class="link" onclick="removeProjectStage('${proj.id}',${i})">remove</button></div>`;
+            });
+            html += `<div class="field"><input type="text" style="flex:1;" id="stageDraft${proj.id}" placeholder="add a stage…" onkeydown="if(event.key==='Enter') addProjectStage('${proj.id}')" /><button class="mini" onclick="addProjectStage('${proj.id}')">add</button></div></div>`;
+          }
+          if (proj.showHist) {
+            const recent = [...proj.sessions].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6);
+            html += `<div class="hist">`;
+            for (const x of recent) html += `<div class="entry"><b>${fmtShort(x.date)}</b><span>${fmtMinutes(x.minutes)}${x.note ? ` · ${x.note}` : ''}</span></div>`;
+            html += `</div>`;
+          }
+        } else {
+          html += `<div class="row"><button class="link" onclick="toggleProjectPause('${proj.id}')">resume</button></div>`;
+        }
+        html += `</div>`;
+      }
+      html += `<div class="add"><input type="text" class="input" id="projDraft" placeholder="add a project…" onkeydown="if(event.key==='Enter') addProject()" /></div>`;
+      return html;
+    }
+    function moveProject(idx, dir) { data.projects = arrMove(data.projects, idx, dir); saveData(); }
+    function updateProject(id, field, value) { const p = data.projects.find(x => x.id === id); if (p) { p[field] = value; saveData(); } }
+    function removeProject(id) { data.projects = data.projects.filter(p => p.id !== id); saveData(); }
+    function setProjectStage(id, stage) { const p = data.projects.find(x => x.id === id); if (p) { p.current = stage; saveData(); } }
+    function logProjectSession(id) {
       const mins = parseFloat(document.getElementById(`projMin${id}`).value);
       if (!mins) return;
+      const note = document.getElementById(`projNote${id}`).value;
       const p = data.projects.find(x => x.id === id);
-      if (p) {
-        p.sessions.push({ id: uid(), date: todayKey(), minutes: mins });
-        saveData();
-        document.getElementById(`projMin${id}`).value = '';
-        renderProjects();
-      }
-    };
-
-    const renderRoutines = () => {
-      const list = document.getElementById('routinesList');
-      const today = todayKey();
-      list.innerHTML = data.routines.map(r => {
-        const done = r.history.includes(today);
-        return `<div style="display: flex; gap: 10px; align-items: center; padding: '14px 0'; border-bottom: 1px solid #D4D4CA; flex-wrap: wrap;"><input type="text" value="${r.name}" onchange="updateRoutine('${r.id}', this.value)" class="cname" style="flex: 1;" /><button class="mini" onclick="markRoutine('${r.id}')">${done ? '✓' : 'mark'}</button><button class="link" onclick="removeRoutine('${r.id}')">✕</button></div>`;
-      }).join('');
-    };
-
-    const addRoutine = () => {
-      data.routines.push({ id: uid(), name: 'New routine', cadence: 'weekly', history: [] });
+      if (p) { p.sessions.push({ id: uid(), date: todayKey(), minutes: mins, note: note.trim() }); saveData(); }
+    }
+    function toggleProjectPause(id) { const p = data.projects.find(x => x.id === id); if (p) { p.paused = !p.paused; saveData(); } }
+    function toggleProjectStages(id) { const p = data.projects.find(x => x.id === id); if (p) { p.showStages = !p.showStages; saveData(); } }
+    function toggleProjectHist(id) { const p = data.projects.find(x => x.id === id); if (p) { p.showHist = !p.showHist; saveData(); } }
+    function updateProjectStage(id, i, v) { const p = data.projects.find(x => x.id === id); if (p) { p.stages[i] = v; saveData(); } }
+    function addProjectStage(id) {
+      const input = document.getElementById(`stageDraft${id}`);
+      const s = input.value.trim();
+      if (!s) return;
+      const p = data.projects.find(x => x.id === id);
+      if (p) { p.stages.push(s); saveData(); }
+    }
+    function removeProjectStage(id, i) {
+      const p = data.projects.find(x => x.id === id);
+      if (p) { p.stages.splice(i, 1); p.current = Math.min(p.current, p.stages.length); saveData(); }
+    }
+    function addProject() {
+      const input = document.getElementById('projDraft');
+      const name = input.value.trim();
+      if (!name) return;
+      data.projects.push({ id: uid(), name, stages: ['Start'], current: 0, sessions: [], aliases: [], paused: false });
       saveData();
-      renderRoutines();
-    };
-
-    const updateRoutine = (id, name) => {
-      const r = data.routines.find(x => x.id === id);
-      if (r) { r.name = name; saveData(); }
-    };
-
-    const removeRoutine = (id) => {
-      data.routines = data.routines.filter(r => r.id !== id);
-      saveData();
-      renderRoutines();
-    };
-
-    const markRoutine = (id) => {
-      const r = data.routines.find(x => x.id === id);
-      if (r) {
-        const today = todayKey();
-        if (!r.history.includes(today)) r.history.push(today);
-        saveData();
-        renderRoutines();
-      }
-    };
-
-    const render = () => {
-      const today = todayKey();
-      const te = data.sleep.entries.find(e => e.date === today);
-      if (te) document.getElementById('sleepStatus').textContent = `${te.bed} → ${te.wake}`;
-      const we = data.weight.entries.find(e => e.date === today);
-      if (we) document.getElementById('weightStatus').textContent = `${we.am} / ${we.pm}`;
-      updateSavings();
-      renderActivities();
-      renderProjects();
-      renderRoutines();
-    };
-
-    // Init - check for session
-    const hash = window.location.hash;
-    if (hash.includes('access_token')) {
-      const token = new URLSearchParams(hash.slice(1)).get('access_token');
-      if (token) {
-        localStorage.setItem('hy_token', token);
-        sessionToken = token;
-        window.location.hash = '';
-      }
     }
 
-    if (sessionToken) {
-      // Simulate user (in real app would verify token)
-      user = { id: 'current_user', email: localStorage.getItem('hy_email') || 'user@example.com' };
-      document.getElementById('userEmail').textContent = user.email;
-      document.getElementById('authScreen').classList.add('hidden');
-      document.getElementById('appScreen').classList.remove('hidden');
-      render();
-    } else {
-      const saved = localStorage.getItem('hy_email');
-      if (saved) document.getElementById('emailInput').value = saved;
+    // ---------------- Routines ----------------
+    function routineDue(r) {
+      if (r.mode === 'date') return r.nextDate || null;
+      const last = r.history.length ? r.history.reduce((a, d) => (d > a ? d : a), r.history[0]) : null;
+      if (last) return dateKey(addByCadence(parseDate(last), r.cadence));
+      return r.nextDate || todayKey();
     }
+    function renderRoutines() {
+      if (edit) {
+        let html = '';
+        const groupList = data.routines.filter(e => e.group).map(g => ({ id: g.id, name: g.name }));
+        data.routines.forEach((e, i) => {
+          if (e.group) {
+            html += `<div class="outrow grp">
+              <span class="outname">${e.name || 'group'}</span>
+              <span class="arrows">
+                <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveRoutine(${i},-1)">↑</button>
+                <button class="arrow" ${i === data.routines.length - 1 ? 'disabled' : ''} onclick="moveRoutine(${i},1)">↓</button>
+              </span>
+              <button class="btn-x" onclick="removeRoutine('${e.id}')">✕</button>
+            </div>`;
+            e.items.forEach((it, j) => {
+              html += `<div class="outrow leaf">
+                <span class="outname">${it.name || 'untitled'}</span>
+                <span class="arrows">
+                  <button class="arrow" ${j === 0 ? 'disabled' : ''} onclick="moveRoutineItem('${e.id}',${j},-1)">↑</button>
+                  <button class="arrow" ${j === e.items.length - 1 ? 'disabled' : ''} onclick="moveRoutineItem('${e.id}',${j},1)">↓</button>
+                </span>
+                <select onchange="moveRoutineToGroup('${it.id}', this.value)">
+                  <option value="top">— loose —</option>
+                  ${groupList.map(g => `<option value="${g.id}" ${g.id===e.id?'selected':''}>${g.name}</option>`).join('')}
+                  <option value="new">＋ new group</option>
+                </select>
+                <button class="btn-x" onclick="removeRoutine('${it.id}','${e.id}')">✕</button>
+              </div>`;
+            });
+          } else {
+            html += `<div class="outrow">
+              <span class="outname">${e.name || 'untitled'}</span>
+              <span class="arrows">
+                <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveRoutine(${i},-1)">↑</button>
+                <button class="arrow" ${i === data.routines.length - 1 ? 'disabled' : ''} onclick="moveRoutine(${i},1)">↓</button>
+              </span>
+              <select onchange="moveRoutineToGroup('${e.id}', this.value)">
+                <option value="top" selected>— loose —</option>
+                ${groupList.map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
+                <option value="new">＋ new group</option>
+              </select>
+              <button class="btn-x" onclick="removeRoutine('${e.id}')">✕</button>
+            </div>`;
+          }
+        });
+        return html;
+      }
+      let html = '';
+      for (const r of data.routines) {
+        html += r.group ? renderRoutineGroup(r) : renderRoutineRow(r, false);
+      }
+      html += `<div class="add">
+        <input type="text" class="input" id="routDraft" placeholder="add a routine…" onkeydown="if(event.key==='Enter') addRoutine()" />
+        <button class="mini" onclick="addRoutine()">add</button>
+        <button class="link" onclick="addGroup()">+ new group</button>
+      </div>`;
+      return html;
+    }
+    function renderRoutineGroup(group) {
+      let html = `<div class="group">
+        <div class="group-head${group.paused ? '' : ''}">
+          <button class="disc" onclick="toggleGroupCollapse('${group.id}')">${group.collapsed ? '▸' : '▾'}</button>
+          <input type="text" class="cname" value="${group.name}" onchange="updateGroup('${group.id}', 'name', this.value)" />
+          ${group.paused ? '<span class="badge-pause">paused</span>' : `<span class="meta">${group.items.length} item${group.items.length===1?'':'s'}</span>`}
+          <span style="flex:1;"></span>
+          <button class="link" onclick="toggleGroupPause('${group.id}')">${group.paused ? 'resume' : 'pause'}</button>
+        </div>`;
+      if (!group.collapsed) {
+        html += `<div class="group-items">`;
+        for (const item of group.items) html += renderRoutineRow(item, group.paused, group.id);
+        if (!group.paused) {
+          html += `<div class="add" style="margin-top:8px;">
+            <input type="text" class="input" id="groupItem${group.id}" placeholder="add to this group…" onkeydown="if(event.key==='Enter') addRoutineToGroup('${group.id}')" />
+          </div>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+      return html;
+    }
+    function renderRoutineRow(routine, groupPaused, groupId) {
+      const paused = routine.paused || groupPaused;
+      const due = routineDue(routine);
+      let status = 'no date set', tone = 'muted';
+      if (due) {
+        const d = daysUntil(due), on = fmtShort(due);
+        if (d < 0) { status = `${on} · overdue ${-d}d`; tone = 'warn'; }
+        else if (d === 0) { status = `${on} · today`; tone = 'warn'; }
+        else { status = `${on} · in ${d}d`; tone = 'ok'; }
+      }
+      let html = `<div class="routine${paused ? '' : ''}" style="${paused ? 'opacity:.5;' : ''}">
+        <input type="text" class="rname" value="${routine.name}" onchange="updateRoutine('${routine.id}', 'name', this.value${groupId ? `, '${groupId}'` : ''})" />`;
+      if (!paused) {
+        html += `<select onchange="updateRoutine('${routine.id}', 'mode', this.value${groupId ? `, '${groupId}'` : ''})">
+          <option value="cadence" ${routine.mode === 'cadence' ? 'selected' : ''}>every…</option>
+          <option value="date" ${routine.mode === 'date' ? 'selected' : ''}>on a date</option>
+        </select>`;
+        if (routine.mode === 'cadence') {
+          html += `<select onchange="updateRoutine('${routine.id}', 'cadence', this.value${groupId ? `, '${groupId}'` : ''})">
+            <option value="weekly" ${routine.cadence === 'weekly' ? 'selected' : ''}>week</option>
+            <option value="monthly" ${routine.cadence === 'monthly' ? 'selected' : ''}>month</option>
+            <option value="yearly" ${routine.cadence === 'yearly' ? 'selected' : ''}>year</option>
+          </select>`;
+        } else {
+          html += `<input type="date" value="${routine.nextDate || ''}" onchange="updateRoutine('${routine.id}', 'nextDate', this.value${groupId ? `, '${groupId}'` : ''})" />`;
+        }
+        html += `<span class="status ${tone}">${status}</span>
+          <button class="mini" onclick="markRoutineDone('${routine.id}'${groupId ? `, '${groupId}'` : ''})">done</button>
+          ${!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${groupId ? `, '${groupId}'` : ''})">pause</button>` : ''}`;
+      } else {
+        html += `<span class="badge-pause">paused</span>`;
+        if (!groupPaused) html += `<button class="link" onclick="toggleRoutinePause('${routine.id}'${groupId ? `, '${groupId}'` : ''})">resume</button>`;
+      }
+      html += `</div>`;
+      return html;
+    }
+    function moveRoutine(idx, dir) { data.routines = arrMove(data.routines, idx, dir); saveData(); }
+    function moveRoutineItem(groupId, idx, dir) {
+      const g = data.routines.find(e => e.id === groupId && e.group);
+      if (g) { g.items = arrMove(g.items, idx, dir); saveData(); }
+    }
+    function moveRoutineToGroup(itemId, dest) {
+      let moved = null;
+      let next = data.routines.map(e => {
+        if (e.group) {
+          const j = e.items.findIndex(it => it.id === itemId);
+          if (j >= 0) { moved = e.items[j]; const items = e.items.slice(); items.splice(j, 1); return { ...e, items }; }
+        }
+        return e;
+      });
+      if (!moved) {
+        const idx = next.findIndex(e => !e.group && e.id === itemId);
+        if (idx >= 0) { moved = next[idx]; next = next.filter(e => e.id !== itemId); }
+      }
+      if (!moved) return;
+      if (dest === 'new') next = [...next, { id: uid(), name: 'New group', group: true, collapsed: false, paused: false, items: [moved] }];
+      else if (dest === 'top') next = [...next, moved];
+      else {
+        let placed = false;
+        next = next.map(e => { if (e.group && e.id === dest) { placed = true; return { ...e, items: [...e.items, moved] }; } return e; });
+        if (!placed) next = [...next, moved];
+      }
+      data.routines = next;
+      saveData();
+    }
+    function updateRoutine(id, field, value, groupId) {
+      if (groupId) {
+        const g = data.routines.find(e => e.id === groupId);
+        if (g) { const it = g.items.find(x => x.id === id); if (it) { it[field] = value; saveData(); } }
+      } else {
+        const r = data.routines.find(x => x.id === id);
+        if (r && !r.group) { r[field] = value; saveData(); }
+      }
+    }
+    function removeRoutine(id, groupId) {
+      if (groupId) {
+        const g = data.routines.find(e => e.id === groupId);
+        if (g) { g.items = g.items.filter(it => it.id !== id); saveData(); }
+      } else {
+        data.routines = data.routines.filter(e => e.id !== id);
+        saveData();
+      }
+    }
+    function markRoutineDone(id, groupId) {
+      const today = todayKey();
+      const mark = (it) => { if (!it.history.includes(today)) it.history.push(today); if (it.mode === 'date') it.nextDate = null; };
+      if (groupId) { const g = data.routines.find(e => e.id === groupId); if (g) { const it = g.items.find(x => x.id === id); if (it) mark(it); } }
+      else { const r = data.routines.find(x => x.id === id); if (r && !r.group) mark(r); }
+      saveData();
+    }
+    function toggleRoutinePause(id, groupId) {
+      if (groupId) { const g = data.routines.find(e => e.id === groupId); if (g) { const it = g.items.find(x => x.id === id); if (it) it.paused = !it.paused; } }
+      else { const r = data.routines.find(x => x.id === id); if (r && !r.group) r.paused = !r.paused; }
+      saveData();
+    }
+    function toggleGroupCollapse(id) { const g = data.routines.find(e => e.id === id && e.group); if (g) { g.collapsed = !g.collapsed; saveData(); } }
+    function toggleGroupPause(id) { const g = data.routines.find(e => e.id === id && e.group); if (g) { g.paused = !g.paused; saveData(); } }
+    function updateGroup(id, field, value) { const g = data.routines.find(e => e.id === id && e.group); if (g) { g[field] = value; saveData(); } }
+    function addRoutineToGroup(groupId) {
+      const input = document.getElementById(`groupItem${groupId}`);
+      const name = input.value.trim();
+      if (!name) return;
+      const g = data.routines.find(e => e.id === groupId && e.group);
+      if (g) { g.items.push(leaf(name, 'weekly')); saveData(); }
+    }
+    function addRoutine() {
+      const input = document.getElementById('routDraft');
+      const name = input.value.trim();
+      if (!name) return;
+      data.routines.push(leaf(name, 'weekly'));
+      saveData();
+    }
+    function addGroup() {
+      data.routines.push({ id: uid(), name: 'New group', group: true, collapsed: false, paused: false, items: [] });
+      saveData();
+    }
+
+    // ---------------- Coming up (due banner) ----------------
+    function renderDueBanner() {
+      const dueEl = document.getElementById('dueBanner');
+      if (edit) { dueEl.innerHTML = ''; return; }
+      const leaves = [];
+      data.routines.forEach(e => {
+        if (e.group) { if (!e.paused) e.items.forEach(it => { if (!it.paused) leaves.push(it); }); }
+        else if (!e.paused) leaves.push(e);
+      });
+      const dueSoon = leaves
+        .map(r => ({ r, due: routineDue(r) }))
+        .filter(x => x.due && daysUntil(x.due) <= 3)
+        .sort((a, b) => (a.due < b.due ? -1 : 1));
+      if (dueSoon.length === 0) { dueEl.innerHTML = ''; return; }
+      let html = `<div class="due-banner"><h3>Coming up</h3>`;
+      for (const { r, due } of dueSoon) {
+        const d = daysUntil(due);
+        const tail = d < 0 ? `<b>overdue ${-d}d</b>` : d === 0 ? `<b>today</b>` : `in ${d}d`;
+        html += `<div class="due-item">${r.name} — ${fmtShort(due)}, ${tail}</div>`;
+      }
+      html += `</div>`;
+      dueEl.innerHTML = html;
+    }
+
+    // ---------------- Quick log: natural-language matching ----------------
+    function collectTargets() {
+      const t = [];
+      data.activities.forEach(a => { if (!a.paused) t.push({ type: 'activity', id: a.id, name: a.name, keys: [a.name, ...(a.aliases || [])] }); });
+      data.routines.forEach(e => {
+        if (e.group) { if (!e.paused) e.items.forEach(it => { if (!it.paused) t.push({ type: 'routine', groupId: e.id, id: it.id, name: it.name, keys: [it.name, ...(it.aliases || [])] }); }); }
+        else if (!e.paused) t.push({ type: 'routine', id: e.id, name: e.name, keys: [e.name, ...(e.aliases || [])] });
+      });
+      data.projects.forEach(p => { if (!p.paused) t.push({ type: 'project', id: p.id, name: p.name, keys: [p.name, ...(p.aliases || [])] }); });
+      return t;
+    }
+    function extractQty(low) {
+      let minutes = null, count = null, m;
+      if ((m = low.match(/(\d+(?:\.\d+)?)\s*(小时|時|时|hours?|hrs?|h)/))) minutes = parseFloat(m[1]) * 60;
+      else if ((m = low.match(/(\d+(?:\.\d+)?)\s*(分钟|分鐘|分|minutes?|mins?|min|m)/))) minutes = parseFloat(m[1]);
+      if ((m = low.match(/(\d+)\s*(次|回|times?|x)/))) count = parseInt(m[1], 10);
+      return { minutes, count };
+    }
+    let lastUndo = null;
+    function handleQuick() {
+      const input = document.getElementById('quickInput');
+      const raw = (input.value || '').trim();
+      if (!raw) return;
+      const low = raw.toLowerCase();
+      let best = null, bestLen = 0;
+      collectTargets().forEach(t => t.keys.forEach(k => {
+        if (k) { const kk = k.toLowerCase(); if (low.includes(kk) && kk.length > bestLen) { best = t; bestLen = kk.length; } }
+      }));
+      const fbEl = document.getElementById('quickFeedback');
+      if (!best) { fbEl.innerHTML = `<div class="qfb err">No match for "${raw}". Try an activity or routine name.</div>`; return; }
+      const { minutes, count } = extractQty(low);
+      lastUndo = JSON.parse(JSON.stringify(data));
+      let msg = '';
+      if (best.type === 'activity') {
+        const a = data.activities.find(x => x.id === best.id);
+        const per = minutes != null ? minutes : (a.defaultMin || 0);
+        const nlg = count || 1;
+        for (let i = 0; i < nlg; i++) a.logs.push({ id: uid(), date: todayKey(), minutes: per });
+        msg = `Logged ${nlg > 1 ? nlg + '× ' : ''}${per ? fmtMinutes(per) : 'a day'} to ${a.name}.`;
+      } else if (best.type === 'routine') {
+        const t = todayKey();
+        const mark = (it) => { if (!it.history.includes(t)) it.history.push(t); if (it.mode === 'date') it.nextDate = null; };
+        if (best.groupId) { const g = data.routines.find(e => e.id === best.groupId); mark(g.items.find(x => x.id === best.id)); }
+        else mark(data.routines.find(x => x.id === best.id));
+        msg = `Marked ${best.name} done.`;
+      } else {
+        if (minutes == null) { fbEl.innerHTML = `<div class="qfb err">How long? e.g. "${best.name} 30分钟".</div>`; return; }
+        const p = data.projects.find(x => x.id === best.id);
+        p.sessions.push({ id: uid(), date: todayKey(), minutes, note: '' });
+        msg = `Logged ${fmtMinutes(minutes)} to ${p.name}.`;
+      }
+      fbEl.innerHTML = `<div class="qfb ok">${msg} · <button class="link" onclick="quickUndo()">undo</button></div>`;
+      input.value = '';
+      saveData();
+    }
+    function quickUndo() {
+      if (lastUndo) { data = lastUndo; lastUndo = null; document.getElementById('quickFeedback').innerHTML = `<div class="qfb ok">Undone.</div>`; saveData(); }
+    }
+
+    render();
+    supaLoad();
   </script>
 </body>
 </html>
