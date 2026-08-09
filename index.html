@@ -153,16 +153,13 @@
       <h1 class="title">Personal Tracker</h1>
     </header>
 
-    <div class="backup-buttons">
-      <button class="btn-backup" onclick="exportData()">📥 Export backup</button>
-      <button class="btn-backup" onclick="document.getElementById('importFile').click()">📤 Import backup</button>
-      <input type="file" id="importFile" accept=".json" onchange="importData(event)" />
-      <span id="syncStatus" style="font-size:11px;color:var(--muted);margin-left:auto;align-self:center;">☁️ checking…</span>
+    <div class="row" style="margin-top:0;">
+      <span id="syncStatus" style="font-size:11px;color:var(--muted);">☁️ Checking…</span>
     </div>
 
     <div class="quick" id="quickWrap">
       <div class="quickbox">
-        <input type="text" class="qinput" id="quickInput" placeholder="say it plainly" onkeydown="if(event.key==='Enter') handleQuick()" />
+        <input type="text" class="qinput" id="quickInput" placeholder="What did you accomplish" onkeydown="if(event.key==='Enter') handleQuick()" />
         <button class="mini" onclick="handleQuick()">Add</button>
       </div>
       <div id="quickFeedback"></div>
@@ -172,7 +169,12 @@
 
     <div id="sectionsContainer"></div>
 
-    <div class="row" style="justify-content:center;margin-top:36px;">
+    <div class="backup-buttons" style="justify-content:center;margin-top:36px;">
+      <button class="btn-backup" onclick="exportData()">📥 Export backup</button>
+      <button class="btn-backup" onclick="document.getElementById('importFile').click()">📤 Import backup</button>
+      <input type="file" id="importFile" accept=".json" onchange="importData(event)" />
+    </div>
+    <div class="row" style="justify-content:center;margin-top:14px;">
       <button class="link" onclick="toggleDataPanel()">All data</button>
     </div>
     <div id="dataPanel"></div>
@@ -219,8 +221,19 @@
       else x.setFullYear(x.getFullYear() + 1);
       return x;
     }
-    function sleepDur(bed, wake) { const b = toMin(bed), w = toMin(wake); if (b == null || w == null) return null; let ww = w; if (ww <= b) ww += 1440; return (ww - b) / 60; }
-    function bedVal(bed) { const b = toMin(bed); if (b == null) return null; let h = b / 60; if (h < 12) h += 24; return h; }
+    function dayOffset(sel) { return sel === 'today' ? 1 : 0; }
+    function sleepDurEntry(entry) {
+      if (!entry || !entry.bed || !entry.wake) return null;
+      const bedTotal = dayOffset(entry.bedDay) * 1440 + toMin(entry.bed);
+      const wakeTotal = dayOffset(entry.wakeDay || 'today') * 1440 + toMin(entry.wake);
+      const diff = wakeTotal - bedTotal;
+      return diff > 0 ? diff / 60 : null;
+    }
+    function bedHourValue(entry) {
+      if (!entry || !entry.bed) return null;
+      const h = toMin(entry.bed) / 60;
+      return entry.bedDay === 'today' ? h + 24 : h;
+    }
 
     const leaf = (name, cad, aliases = []) => ({ id: uid(), name, mode: 'cadence', cadence: cad, nextDate: null, history: [], paused: false, aliases });
     const TRASH_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
@@ -262,9 +275,14 @@
     if (!data.bodyOrder) data.bodyOrder = ['sleep', 'weight'];
     if (!data.savings) data.savings = { tx: [] };
     let edit = false;
-    let showGoals = false;
+    let editingGoal = {};
+    let editingProject = {};
+    let editingGroup = {};
     let dueView = 'due';
     let bodyView = 'list';
+    let movementView = 'bars';
+    let calMonth = new Date().getMonth();
+    let calYear = new Date().getFullYear();
     let sleepEditing = false;
     let weightEditing = false;
     let editingFrequency = {};
@@ -296,7 +314,7 @@
       return detail;
     }
     async function supaLoad() {
-      setSyncStatus('☁️ checking…');
+      setSyncStatus('☁️ Checking…');
       try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/app_data?id=eq.${SYNC_ROW_ID}&select=data,updated_at`, {
           headers: supaHeaders(),
@@ -310,18 +328,18 @@
           if (!data.bodyOrder) data.bodyOrder = ['sleep', 'weight'];
           if (!data.savings) data.savings = { tx: [] };
           localStorage.setItem('halfyear-v5', JSON.stringify(data));
-          setSyncStatus('☁️ synced');
+          setSyncStatus('☁️ Synced');
         } else {
           // no cloud row yet — push what we have locally to create it
           await supaSave();
         }
       } catch (e) {
-        setSyncStatus('⚠️ ' + (e.message || 'offline'));
+        setSyncStatus('⚠️ ' + (e.message || 'Offline'));
       }
       render();
     }
     async function supaSave() {
-      setSyncStatus('☁️ saving…');
+      setSyncStatus('☁️ Saving…');
       try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/app_data`, {
           method: 'POST',
@@ -329,9 +347,9 @@
           body: JSON.stringify({ id: SYNC_ROW_ID, data, updated_at: new Date().toISOString() }),
         });
         if (!res.ok) throw new Error(await detailFromResponse(res));
-        setSyncStatus('☁️ synced');
+        setSyncStatus('☁️ Synced');
       } catch (e) {
-        setSyncStatus('⚠️ ' + (e.message || 'save failed'));
+        setSyncStatus('⚠️ ' + (e.message || 'Save failed'));
       }
     }
     let syncTimer = null;
@@ -414,7 +432,7 @@
         </span>`;
       } else if (key === 'movement') {
         head += `<span class="head-controls">
-          <button class="editbtn${showGoals ? ' on' : ''}" onclick="toggleShowGoals()">Goal</button>
+          <button class="editbtn${movementView === 'calendar' ? ' on' : ''}" onclick="toggleMovementView()">Calendar</button>
           <button class="plus" onclick="openAddActivityModal()">+</button>
         </span>`;
       } else if (key === 'body') {
@@ -422,10 +440,7 @@
       } else if (key === 'projects') {
         head += `<button class="plus" onclick="openAddProjectModal()">+</button>`;
       } else if (key === 'routines') {
-        head += `<span class="head-controls">
-          <button class="link" onclick="addGroup()">+ group</button>
-          <button class="plus" onclick="openAddRoutineModal()">+</button>
-        </span>`;
+        head += `<button class="plus" onclick="openAddRoutineModal()">+</button>`;
       }
       head += `</div>`;
 
@@ -439,7 +454,13 @@
       return `<section class="section">${head}${body}</section>`;
     }
     function updateSectionTitle(key, value) { data.sectionTitles[key] = value; saveData(); }
-    function toggleShowGoals() { showGoals = !showGoals; render(); }
+    function toggleMovementView() { movementView = movementView === 'bars' ? 'calendar' : 'bars'; render(); }
+    function moveCalMonth(delta) {
+      calMonth += delta;
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      if (calMonth > 11) { calMonth = 0; calYear++; }
+      render();
+    }
     function toggleBodyView() { bodyView = bodyView === 'list' ? 'chart' : 'list'; render(); }
     function moveSection(idx, dir) { data.sectionOrder = arrMove(data.sectionOrder, idx, dir); saveData(); }
 
@@ -462,37 +483,35 @@
     function renderSleepCard() {
       const today = todayKey();
       const te = data.sleep.entries.find(e => e.date === today);
+      const bedDay = te ? (te.bedDay || 'yesterday') : 'yesterday';
+      const wakeDay = te ? (te.wakeDay || 'today') : 'today';
       let html = `<div class="card${data.sleep.paused ? ' paused' : ''}">
         <div class="card-head">
           <span class="cname" style="border-bottom:none;">Sleep</span>
-          ${data.sleep.paused
-            ? `<span class="badge-pause">paused</span><button class="link" onclick="toggleSleepPause()">resume</button>`
-            : `<button class="link" onclick="toggleSleepPause()">pause</button>`}
+          ${data.sleep.paused ? '<span class="badge-pause">Paused</span>' : ''}
+          <button class="link" onclick="toggleSleepEdit()">${sleepEditing ? 'Close' : 'Edit'}</button>
         </div>`;
-      if (!data.sleep.paused) {
-        if (bodyView === 'chart') {
-          html += renderSleepChart();
-        } else {
-          const dur = te && sleepDur(te.bed, te.wake);
-          if (te) {
-            html += `<div class="pace" style="margin-top:4px;">
-              last night: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}
-            </div>`;
-          }
-          if (!te || sleepEditing) {
-            html += `<div class="row">
-              <span style="font-size:12px;color:var(--muted);">to bed</span>
-              <input type="time" id="bedInput" value="${te ? te.bed : ''}" />
-              <span style="font-size:12px;color:var(--muted);">up at</span>
-              <input type="time" id="wakeInput" value="${te ? te.wake : ''}" />
-              <button class="mini" onclick="saveSleep()">Save</button>
-            </div>`;
-          }
-          if (te) {
-            html += `<div class="row">
-              <button class="link" onclick="toggleSleepEdit()">${sleepEditing ? 'close' : 'Edit'}</button>
-            </div>`;
-          }
+      if (bodyView === 'chart' && !data.sleep.paused) {
+        html += renderSleepChart();
+      } else if (sleepEditing) {
+        html += `<div class="panel">
+          <div class="field"><label>Paused</label><button class="chip${data.sleep.paused ? ' on' : ''}" onclick="toggleSleepPause()">${data.sleep.paused ? 'On' : 'Off'}</button></div>
+          <div class="field"><label>To bed</label>
+            <input type="time" id="bedInput" value="${te ? te.bed : ''}" />
+            <select id="bedDaySel"><option value="yesterday" ${bedDay==='yesterday'?'selected':''}>Yesterday</option><option value="today" ${bedDay==='today'?'selected':''}>Today</option></select>
+          </div>
+          <div class="field"><label>Up at</label>
+            <input type="time" id="wakeInput" value="${te ? te.wake : ''}" />
+            <select id="wakeDaySel"><option value="today" ${wakeDay==='today'?'selected':''}>Today</option><option value="yesterday" ${wakeDay==='yesterday'?'selected':''}>Yesterday</option></select>
+          </div>
+          <div class="row" style="margin-top:0;"><button class="mini" onclick="saveSleep()">Save</button></div>
+        </div>`;
+      } else if (!data.sleep.paused) {
+        const dur = te && sleepDurEntry(te);
+        if (te) {
+          html += `<div class="pace" style="margin-top:4px;">
+            Last night: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}
+          </div>`;
         }
       }
       html += `</div>`;
@@ -501,20 +520,22 @@
     function saveSleep() {
       const bed = document.getElementById('bedInput').value;
       const wake = document.getElementById('wakeInput').value;
+      const bedDay = document.getElementById('bedDaySel').value;
+      const wakeDay = document.getElementById('wakeDaySel').value;
       if (!bed && !wake) return;
       data.sleep.entries = data.sleep.entries.filter(e => e.date !== todayKey());
-      data.sleep.entries.push({ date: todayKey(), bed: bed || '', wake: wake || '' });
+      data.sleep.entries.push({ date: todayKey(), bed: bed || '', wake: wake || '', bedDay, wakeDay });
       sleepEditing = false;
       saveData();
     }
     function toggleSleepPause() { data.sleep.paused = !data.sleep.paused; saveData(); }
     function toggleSleepEdit() { sleepEditing = !sleepEditing; render(); }
     function renderSleepChart() {
-      const entries = [...data.sleep.entries].filter(e => sleepDur(e.bed, e.wake) != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
+      const entries = [...data.sleep.entries].filter(e => sleepDurEntry(e) != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
       if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
-      const points = entries.map(e => ({ label: fmtShort(e.date), value: round1(sleepDur(e.bed, e.wake)) }));
+      const points = entries.map(e => ({ label: fmtShort(e.date), value: round1(sleepDurEntry(e)) }));
       const avg = round1(points.reduce((s, p) => s + p.value, 0) / points.length);
-      return svgLineChart(points, { summary: `avg ${avg}h over ${points.length} night${points.length === 1 ? '' : 's'}` });
+      return svgLineChart(points, { summary: `Avg ${avg}h over ${points.length} night${points.length === 1 ? '' : 's'}` });
     }
 
     function renderWeightCard() {
@@ -523,33 +544,23 @@
       let html = `<div class="card${data.weight.paused ? ' paused' : ''}">
         <div class="card-head">
           <span class="cname" style="border-bottom:none;">Weight</span>
-          ${data.weight.paused
-            ? `<span class="badge-pause">paused</span><button class="link" onclick="toggleWeightPause()">resume</button>`
-            : `<button class="link" onclick="toggleWeightPause()">pause</button>`}
+          ${data.weight.paused ? '<span class="badge-pause">Paused</span>' : ''}
+          <button class="link" onclick="toggleWeightEdit()">${weightEditing ? 'Close' : 'Edit'}</button>
         </div>`;
-      if (!data.weight.paused) {
-        if (bodyView === 'chart') {
-          html += renderWeightChart();
-        } else {
-          if (te) {
-            html += `<div class="pace" style="margin-top:4px;">
-              today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (kg)
-            </div>`;
-          }
-          if (!te || weightEditing) {
-            html += `<div class="row">
-              <span style="font-size:12px;color:var(--muted);">morning</span>
-              <input type="number" step="0.1" class="short" id="weightAm" value="${te && te.am != null ? te.am : ''}" />
-              <span style="font-size:12px;color:var(--muted);">evening</span>
-              <input type="number" step="0.1" class="short" id="weightPm" value="${te && te.pm != null ? te.pm : ''}" />
-              <button class="mini" onclick="saveWeight()">Save</button>
-            </div>`;
-          }
-          if (te) {
-            html += `<div class="row">
-              <button class="link" onclick="toggleWeightEdit()">${weightEditing ? 'close' : 'Edit'}</button>
-            </div>`;
-          }
+      if (bodyView === 'chart' && !data.weight.paused) {
+        html += renderWeightChart();
+      } else if (weightEditing) {
+        html += `<div class="panel">
+          <div class="field"><label>Paused</label><button class="chip${data.weight.paused ? ' on' : ''}" onclick="toggleWeightPause()">${data.weight.paused ? 'On' : 'Off'}</button></div>
+          <div class="field"><label>Morning</label><input type="number" step="0.1" class="short" id="weightAm" value="${te && te.am != null ? te.am : ''}" /></div>
+          <div class="field"><label>Evening</label><input type="number" step="0.1" class="short" id="weightPm" value="${te && te.pm != null ? te.pm : ''}" /></div>
+          <div class="row" style="margin-top:0;"><button class="mini" onclick="saveWeight()">Save</button></div>
+        </div>`;
+      } else if (!data.weight.paused) {
+        if (te) {
+          html += `<div class="pace" style="margin-top:4px;">
+            Today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (kg)
+          </div>`;
         }
       }
       html += `</div>`;
@@ -566,7 +577,6 @@
     }
     function toggleWeightPause() { data.weight.paused = !data.weight.paused; saveData(); }
     function toggleWeightEdit() { weightEditing = !weightEditing; render(); }
-    function toggleWeightHist() { data.weight.showHist = !data.weight.showHist; saveData(); }
     function renderWeightChart() {
       const entries = [...data.weight.entries].filter(e => e.am != null || e.pm != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
       if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
@@ -609,7 +619,7 @@
       for (let i = 0; i < shown; i++) coins += `<div class="coin coin-${kind}"></div>`;
       return `<div class="coin-stack">
         <div class="coin-pile">${coins}</div>
-        <div class="coin-label">${count}× ${kind}${count > cap ? ` (+${count - cap})` : ''}</div>
+        <div class="coin-label">${count}× ${kind.charAt(0).toUpperCase()}${kind.slice(1)}${count > cap ? ` (+${count - cap})` : ''}</div>
       </div>`;
     }
     function renderSavings() {
@@ -633,11 +643,11 @@
             <span class="cdot" style="border-color:var(--silver);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="coinS" />
             <span class="cdot" style="border-color:var(--bronze);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="coinB" />
           </div>
-          <div class="field"><label>For</label><input type="text" style="flex:1 1 120px;" id="coinPurpose" placeholder="what it's for (required to withdraw)" /></div>
+          <div class="field"><label>For</label><input type="text" style="flex:1 1 120px;" id="coinPurpose" placeholder="What it's for (required to withdraw)" /></div>
           <div class="row">
             <button class="mini" onclick="savingsDeposit()">Deposit</button>
             <button class="mini" onclick="savingsWithdraw()">Withdraw</button>
-            <span style="font-size:12px;color:var(--muted);margin-left:4px;">gold $1000 · silver $500 · bronze $100</span>
+            <span style="font-size:12px;color:var(--muted);margin-left:4px;">Gold $1000 · Silver $500 · Bronze $100</span>
           </div>
         </div>
         <div id="savingsErr"></div>`;
@@ -663,7 +673,7 @@
       const { g, s, b, amount } = readCoins();
       const balance = data.savings.tx.reduce((s2, t) => s2 + (t.type === 'deposit' ? t.amount : -t.amount), 0);
       if (amount <= 0) { savingsErr('Pick which coins to take out.'); return; }
-      if (amount > balance) { savingsErr("That's more than the jar holds."); return; }
+      if (amount > balance) { savingsErr("That's more than you have saved."); return; }
       const purpose = document.getElementById('coinPurpose').value.trim();
       if (!purpose) { savingsErr("Add what it's for."); return; }
       data.savings.tx.push({ id: uid(), type: 'withdraw', amount, coins: { g, s, b }, purpose, date: todayKey() });
@@ -671,11 +681,13 @@
     }
 
     // ---------------- Movement (activities) ----------------
+    const ACT_COLORS = ['#6F7F73','#A8735B','#B9985E','#7A8FA6','#9A6FA8','#5F9E8F','#C77B4D','#7C9E5F'];
+    function actColor(act) { const i = data.activities.findIndex(a => a.id === act.id); return ACT_COLORS[i % ACT_COLORS.length]; }
     function renderMovement() {
       if (edit) {
         let html = data.activities.map((a, i) => `
           <div class="outrow">
-            <span class="outname">${a.name || 'untitled'}</span>
+            <span class="outname">${a.name || 'Untitled'}</span>
             <span class="arrows">
               <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveActivity(${i},-1)">↑</button>
               <button class="arrow" ${i === data.activities.length - 1 ? 'disabled' : ''} onclick="moveActivity(${i},1)">↓</button>
@@ -686,20 +698,25 @@
       }
       let html = '';
       const active = data.activities.filter(a => !a.paused);
-      if (active.length > 0) html += renderMovementOverview(active);
+      if (active.length > 0) html += (movementView === 'calendar' ? renderMovementCalendar(active) : renderMovementOverview(active));
       for (const act of data.activities) {
         const days = new Set(act.logs.map(l => l.date)).size;
         const totalMin = act.logs.reduce((s, l) => s + (l.minutes || 0), 0);
         const sessions = act.logs.length;
+        const stats = act.showStats || { days: true, total: true, sessions: true };
+        const figParts = [];
+        if (stats.days) figParts.push(`${days}<small>days</small>`);
+        if (stats.total) figParts.push(`${fmtMinutes(totalMin)}<small>total</small>`);
+        if (stats.sessions) figParts.push(`${sessions}<small>sessions</small>`);
+        const editingG = !!editingGoal[act.id];
         html += `<div class="card${act.paused ? ' paused' : ''}">
           <div class="card-head">
             <input type="text" class="cname" value="${act.name}" onchange="updateActivity('${act.id}', 'name', this.value)" />
-            ${act.paused
-              ? `<span class="badge-pause">paused</span><button class="link" onclick="toggleActivityPause('${act.id}')">resume</button>`
-              : `<button class="link" onclick="toggleActivityPause('${act.id}')">pause</button>`}
-          </div>
-          <div class="figure" style="font-size:20px;">${days}<small>days</small> · ${fmtMinutes(totalMin)}<small>total</small> · ${sessions}<small>sessions</small></div>`;
-        if (act.hasGoal && !act.paused) {
+            ${act.paused ? '<span class="badge-pause">Paused</span>' : ''}
+            <button class="link" onclick="toggleEditGoal('${act.id}')">${editingG ? 'Close' : 'Edit'}</button>
+          </div>`;
+        if (figParts.length > 0) html += `<div class="figure" style="font-size:20px;">${figParts.join(' · ')}</div>`;
+        if (act.hasGoal && !act.paused && !editingG) {
           const cur = act.goalKind === 'hours' ? totalMin / 60 : act.goalKind === 'sessions' ? sessions : days;
           const rem = Math.max(act.target - cur, 0);
           const dLeft = Math.max(daysUntil(act.deadline), 0);
@@ -708,27 +725,31 @@
           html += `<div class="bar"><div class="bar-fill" style="width:${pct * 100}%;"></div></div>
             <div class="pace">${rem <= 0 ? `Goal reached — <b>${round1(cur)} ${act.goalKind}</b>.` : `${round1(cur)} of ${act.target} ${act.goalKind} · about <b>${round1(pw)} a week</b> to reach it by ${fmtShort(act.deadline)}`}</div>`;
         }
-        if (!act.paused) {
-          if (!showGoals) {
-            html += `<div class="row">
-              <input type="number" min="0" class="short" id="actMin${act.id}" /> <span style="font-size:12px;color:var(--muted);">min</span>
-              <button class="mini" onclick="logActivity('${act.id}')">Add</button>
-            </div>`;
-          } else {
-            html += `<div class="panel">
-              <div class="field"><label>1 session</label><input type="number" min="0" class="short" value="${act.defaultMin ?? 30}" onchange="updateActivity('${act.id}', 'defaultMin', Number(this.value))" /><span style="font-size:12px;color:var(--muted);">min · used for "1次" &amp; bare logs</span></div>
-              <div class="field"><label>Match</label><input type="text" style="flex:1 1 120px;" value="${(act.aliases || []).join(' ')}" placeholder="words the quick box should match" onchange="updateActivity('${act.id}', 'aliases', this.value.split(/[\\s,，、]+/).filter(Boolean))" /></div>
-              <div class="field"><label>Goal</label><button class="chip${act.hasGoal ? ' on' : ''}" onclick="toggleActivityHasGoal('${act.id}')">${act.hasGoal ? 'on' : 'off'}</button></div>
-              ${act.hasGoal ? `
-              <div class="field"><label>Reach</label><input type="number" min="0" class="short" value="${act.target}" onchange="updateActivity('${act.id}', 'target', Number(this.value))" />
-                <select onchange="updateActivity('${act.id}', 'goalKind', this.value)">
-                  <option value="days" ${act.goalKind==='days'?'selected':''}>days</option>
-                  <option value="hours" ${act.goalKind==='hours'?'selected':''}>hours</option>
-                  <option value="sessions" ${act.goalKind==='sessions'?'selected':''}>sessions</option>
-                </select></div>
-              <div class="field"><label>By</label><input type="date" value="${act.deadline}" onchange="updateActivity('${act.id}', 'deadline', this.value)" /></div>` : ''}
-            </div>`;
-          }
+        if (editingG) {
+          html += `<div class="panel">
+            <div class="field"><label>Paused</label><button class="chip${act.paused ? ' on' : ''}" onclick="toggleActivityPause('${act.id}')">${act.paused ? 'On' : 'Off'}</button></div>
+            <div class="field"><label>Show</label>
+              <button class="chip${stats.days ? ' on' : ''}" onclick="toggleActivityStat('${act.id}','days')">Days</button>
+              <button class="chip${stats.total ? ' on' : ''}" onclick="toggleActivityStat('${act.id}','total')">Total</button>
+              <button class="chip${stats.sessions ? ' on' : ''}" onclick="toggleActivityStat('${act.id}','sessions')">Sessions</button>
+            </div>
+            <div class="field"><label>1 session</label><input type="number" min="0" class="short" value="${act.defaultMin ?? 30}" onchange="updateActivity('${act.id}', 'defaultMin', Number(this.value))" /><span style="font-size:12px;color:var(--muted);">min · used for "1次" &amp; bare logs</span></div>
+            <div class="field"><label>Match</label><input type="text" style="flex:1 1 120px;" value="${(act.aliases || []).join(' ')}" placeholder="Words the quick box should match" onchange="updateActivity('${act.id}', 'aliases', this.value.split(/[\\s,，、]+/).filter(Boolean))" /></div>
+            <div class="field"><label>Goal</label><button class="chip${act.hasGoal ? ' on' : ''}" onclick="toggleActivityHasGoal('${act.id}')">${act.hasGoal ? 'On' : 'Off'}</button></div>
+            ${act.hasGoal ? `
+            <div class="field"><label>Reach</label><input type="number" min="0" class="short" value="${act.target}" onchange="updateActivity('${act.id}', 'target', Number(this.value))" />
+              <select onchange="updateActivity('${act.id}', 'goalKind', this.value)">
+                <option value="days" ${act.goalKind==='days'?'selected':''}>Days</option>
+                <option value="hours" ${act.goalKind==='hours'?'selected':''}>Hours</option>
+                <option value="sessions" ${act.goalKind==='sessions'?'selected':''}>Sessions</option>
+              </select></div>
+            <div class="field"><label>By</label><input type="date" value="${act.deadline}" onchange="updateActivity('${act.id}', 'deadline', this.value)" /></div>` : ''}
+          </div>`;
+        } else if (!act.paused) {
+          html += `<div class="row">
+            <input type="number" min="0" class="short" id="actMin${act.id}" /> <span style="font-size:12px;color:var(--muted);">min</span>
+            <button class="mini" onclick="logActivity('${act.id}')">Add</button>
+          </div>`;
         }
         html += `</div>`;
       }
@@ -744,7 +765,7 @@
       const max = Math.max(1, ...rows.map(r => r.val));
       const fmt = by === 'time' ? (v) => `${round1(v)}h` : (v) => `${Math.round(v)}`;
       let html = `<div style="margin-bottom:8px;"><div class="chips">
-        ${[['days','by days'],['time','by time'],['sessions','by sessions']].map(([k,l]) => `<button class="chip${by===k?' on':''}" onclick="setMovementBy('${k}')">${l}</button>`).join('')}
+        ${[['days','By days'],['time','By time'],['sessions','By sessions']].map(([k,l]) => `<button class="chip${by===k?' on':''}" onclick="setMovementBy('${k}')">${l}</button>`).join('')}
       </div>`;
       for (const r of rows) {
         html += `<div class="row" style="margin-top:9px;"><span style="flex:0 0 96px;font-size:13px;color:var(--ink);">${r.name}</span>
@@ -754,7 +775,39 @@
       html += `</div>`;
       return html;
     }
+    function renderMovementCalendar(active) {
+      const first = new Date(calYear, calMonth, 1);
+      const startDow = first.getDay();
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      const monthLabel = first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      let cells = '';
+      for (let i = 0; i < startDow; i++) cells += `<div></div>`;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dots = active.filter(a => a.logs.some(l => l.date === dateStr))
+          .map(a => `<span style="width:6px;height:6px;border-radius:50%;background:${actColor(a)};display:inline-block;margin:0 1px;"></span>`).join('');
+        cells += `<div style="text-align:center;padding:4px 0;"><div style="font-size:11px;color:var(--muted);">${d}</div><div style="min-height:9px;">${dots}</div></div>`;
+      }
+      const legend = active.map(a => `<span style="display:inline-flex;align-items:center;gap:4px;margin:0 10px 6px 0;font-size:12px;color:var(--muted);"><span style="width:8px;height:8px;border-radius:50%;background:${actColor(a)};display:inline-block;"></span>${a.name}</span>`).join('');
+      return `<div style="margin-bottom:8px;">
+        <div class="row" style="justify-content:space-between;margin-top:0;">
+          <button class="arrow" onclick="moveCalMonth(-1)">←</button>
+          <span style="font-size:13px;color:var(--ink);">${monthLabel}</span>
+          <button class="arrow" onclick="moveCalMonth(1)">→</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:8px;">${cells}</div>
+        <div style="margin-top:10px;">${legend}</div>
+      </div>`;
+    }
     function setMovementBy(k) { window._movementBy = k; render(); }
+    function toggleEditGoal(id) { editingGoal[id] = !editingGoal[id]; render(); }
+    function toggleActivityStat(id, key) {
+      const a = data.activities.find(x => x.id === id);
+      if (!a) return;
+      if (!a.showStats) a.showStats = { days: true, total: true, sessions: true };
+      a.showStats[key] = !a.showStats[key];
+      saveData();
+    }
     function moveActivity(idx, dir) { data.activities = arrMove(data.activities, idx, dir); saveData(); }
     function updateActivity(id, field, value) { const a = data.activities.find(x => x.id === id); if (a) { a[field] = value; saveData(); } }
     function removeActivity(id) {
@@ -778,13 +831,13 @@
         <div class="panel" style="margin-top:0;">
           <div class="field"><label>Name</label><input type="text" style="flex:1;" id="m_actName" /></div>
           <div class="field"><label>1 session</label><input type="number" min="0" class="short" id="m_actDefaultMin" value="30" /><span style="font-size:12px;color:var(--muted);">min</span></div>
-          <div class="field"><label>Goal</label><button class="chip" id="m_actGoalChip" onclick="modalToggleActGoal()">off</button></div>
+          <div class="field"><label>Goal</label><button class="chip" id="m_actGoalChip" onclick="modalToggleActGoal()">Off</button></div>
           <div id="m_actGoalFields" style="display:none;flex-direction:column;gap:11px;">
             <div class="field"><label>Reach</label><input type="number" min="0" class="short" id="m_actTarget" value="0" />
               <select id="m_actGoalKind">
-                <option value="days">days</option>
-                <option value="hours">hours</option>
-                <option value="sessions">sessions</option>
+                <option value="days">Days</option>
+                <option value="hours">Hours</option>
+                <option value="sessions">Sessions</option>
               </select></div>
             <div class="field"><label>By</label><input type="date" id="m_actDeadline" value="2026-12-31" /></div>
           </div>
@@ -798,8 +851,8 @@
     function modalToggleActGoal() {
       const chip = document.getElementById('m_actGoalChip');
       const fields = document.getElementById('m_actGoalFields');
-      const on = chip.textContent.trim() === 'off';
-      chip.textContent = on ? 'on' : 'off';
+      const on = chip.textContent.trim() === 'Off';
+      chip.textContent = on ? 'On' : 'Off';
       chip.classList.toggle('on', on);
       fields.style.display = on ? 'flex' : 'none';
     }
@@ -807,7 +860,7 @@
       const name = document.getElementById('m_actName').value.trim();
       if (!name) return;
       const defaultMin = Number(document.getElementById('m_actDefaultMin').value) || 30;
-      const hasGoal = document.getElementById('m_actGoalChip').textContent.trim() === 'on';
+      const hasGoal = document.getElementById('m_actGoalChip').textContent.trim() === 'On';
       const target = Number(document.getElementById('m_actTarget').value) || 0;
       const goalKind = document.getElementById('m_actGoalKind').value;
       const deadline = document.getElementById('m_actDeadline').value || '2026-12-31';
@@ -822,7 +875,7 @@
       if (edit) {
         return data.projects.map((p, i) => `
           <div class="outrow">
-            <span class="outname">${p.name || 'untitled'}</span>
+            <span class="outname">${p.name || 'Untitled'}</span>
             <span class="arrows">
               <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveProject(${i},-1)">↑</button>
               <button class="arrow" ${i === data.projects.length - 1 ? 'disabled' : ''} onclick="moveProject(${i},1)">↓</button>
@@ -837,14 +890,14 @@
         const allDone = current >= n && n > 0;
         const totalMin = proj.sessions.reduce((s, x) => s + (x.minutes || 0), 0);
         const pct = n > 0 ? current / n : 0;
+        const editingP = !!editingProject[proj.id];
         html += `<div class="card${proj.paused ? ' paused' : ''}">
           <div class="card-head">
             <input type="text" class="cname" value="${proj.name}" onchange="updateProject('${proj.id}', 'name', this.value)" />
-            ${proj.paused
-              ? `<span class="badge-pause">paused</span><button class="link" onclick="toggleProjectPause('${proj.id}')">resume</button>`
-              : `<button class="link" onclick="toggleProjectPause('${proj.id}')">pause</button>`}
+            ${proj.paused ? '<span class="badge-pause">Paused</span>' : ''}
+            <button class="link" onclick="toggleProjectEdit('${proj.id}')">${editingP ? 'Close' : 'Edit'}</button>
           </div>`;
-        if (!proj.paused) {
+        if (!proj.paused && !editingP) {
           html += `<div class="pips">`;
           for (let i = 0; i < proj.stages.length; i++) {
             const cls = i < current ? 'done' : (i === current && !allDone ? 'active' : '');
@@ -856,28 +909,29 @@
             <div class="pace">${fmtMinutes(totalMin)} over ${proj.sessions.length} session${proj.sessions.length === 1 ? '' : 's'}</div>
             <div class="row">
               <input type="number" min="0" class="short" id="projMin${proj.id}" /> <span style="font-size:12px;color:var(--muted);">min</span>
-              <input type="text" placeholder="what you did (optional)" id="projNote${proj.id}" />
+              <input type="text" placeholder="What you did (optional)" id="projNote${proj.id}" />
               <button class="mini" onclick="logProjectSession('${proj.id}')">Add</button>
             </div>
             <div class="row">
-              ${!allDone && n > 0 ? `<button class="link" onclick="setProjectStage('${proj.id}', ${current + 1})">finish this stage →</button>` : ''}
-              ${current > 0 ? `<button class="link" onclick="setProjectStage('${proj.id}', ${current - 1})">← step back</button>` : ''}
-              <button class="link" onclick="toggleProjectStages('${proj.id}')">${proj.showStages ? 'close' : 'edit stages'}</button>
+              ${!allDone && n > 0 ? `<button class="link" onclick="setProjectStage('${proj.id}', ${current + 1})">Finish this stage →</button>` : ''}
+              ${current > 0 ? `<button class="link" onclick="setProjectStage('${proj.id}', ${current - 1})">← Step back</button>` : ''}
             </div>`;
-          if (proj.showStages) {
-            html += `<div class="panel">`;
-            proj.stages.forEach((s, i) => {
-              html += `<div class="field">
-                <span class="arrows">
-                  <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveProjectStage('${proj.id}',${i},-1)">↑</button>
-                  <button class="arrow" ${i === proj.stages.length - 1 ? 'disabled' : ''} onclick="moveProjectStage('${proj.id}',${i},1)">↓</button>
-                </span>
-                <input type="text" style="flex:1;" value="${s}" onchange="updateProjectStage('${proj.id}',${i},this.value)" />
-                <button class="link" onclick="removeProjectStage('${proj.id}',${i})">remove</button>
-              </div>`;
-            });
-            html += `<div class="field"><input type="text" style="flex:1;" id="stageDraft${proj.id}" placeholder="add a stage…" onkeydown="if(event.key==='Enter') addProjectStage('${proj.id}')" /><button class="mini" onclick="addProjectStage('${proj.id}')">add</button></div></div>`;
-          }
+        }
+        if (editingP) {
+          html += `<div class="panel">
+            <div class="field"><label>Paused</label><button class="chip${proj.paused ? ' on' : ''}" onclick="toggleProjectPause('${proj.id}')">${proj.paused ? 'On' : 'Off'}</button></div>`;
+          proj.stages.forEach((s, i) => {
+            html += `<div class="field">
+              <span class="arrows">
+                <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveProjectStage('${proj.id}',${i},-1)">↑</button>
+                <button class="arrow" ${i === proj.stages.length - 1 ? 'disabled' : ''} onclick="moveProjectStage('${proj.id}',${i},1)">↓</button>
+              </span>
+              <input type="text" style="flex:1;" value="${s}" onchange="updateProjectStage('${proj.id}',${i},this.value)" />
+              <button class="link" onclick="removeProjectStage('${proj.id}',${i})">Remove</button>
+            </div>`;
+          });
+          html += `<div class="field"><input type="text" style="flex:1;" id="stageDraft${proj.id}" placeholder="Add a stage…" onkeydown="if(event.key==='Enter') addProjectStage('${proj.id}')" /><button class="mini" onclick="addProjectStage('${proj.id}')">Add</button></div>
+          </div>`;
         }
         html += `</div>`;
       }
@@ -900,7 +954,7 @@
       if (p) { p.sessions.push({ id: uid(), date: todayKey(), minutes: mins, note: note.trim() }); saveData(); }
     }
     function toggleProjectPause(id) { const p = data.projects.find(x => x.id === id); if (p) { p.paused = !p.paused; saveData(); } }
-    function toggleProjectStages(id) { const p = data.projects.find(x => x.id === id); if (p) { p.showStages = !p.showStages; saveData(); } }
+    function toggleProjectEdit(id) { editingProject[id] = !editingProject[id]; render(); }
     function toggleProjectHist(id) { const p = data.projects.find(x => x.id === id); if (p) { p.showHist = !p.showHist; saveData(); } }
     function updateProjectStage(id, i, v) { const p = data.projects.find(x => x.id === id); if (p) { p.stages[i] = v; saveData(); } }
     function moveProjectStage(id, idx, dir) {
@@ -961,7 +1015,7 @@
         data.routines.forEach((e, i) => {
           if (e.group) {
             html += `<div class="outrow grp">
-              <span class="outname">${e.name || 'group'}</span>
+              <span class="outname">${e.name || 'Group'}</span>
               <span class="arrows">
                 <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveRoutine(${i},-1)">↑</button>
                 <button class="arrow" ${i === data.routines.length - 1 ? 'disabled' : ''} onclick="moveRoutine(${i},1)">↓</button>
@@ -970,30 +1024,30 @@
             </div>`;
             e.items.forEach((it, j) => {
               html += `<div class="outrow leaf">
-                <span class="outname">${it.name || 'untitled'}</span>
+                <span class="outname">${it.name || 'Untitled'}</span>
                 <span class="arrows">
                   <button class="arrow" ${j === 0 ? 'disabled' : ''} onclick="moveRoutineItem('${e.id}',${j},-1)">↑</button>
                   <button class="arrow" ${j === e.items.length - 1 ? 'disabled' : ''} onclick="moveRoutineItem('${e.id}',${j},1)">↓</button>
                 </span>
                 <select onchange="moveRoutineToGroup('${it.id}', this.value)">
-                  <option value="top">— loose —</option>
+                  <option value="top">— Loose —</option>
                   ${groupList.map(g => `<option value="${g.id}" ${g.id===e.id?'selected':''}>${g.name}</option>`).join('')}
-                  <option value="new">＋ new group</option>
+                  <option value="new">＋ New group</option>
                 </select>
                 <button class="btn-x" onclick="removeRoutine('${it.id}','${e.id}')">${TRASH_ICON}</button>
               </div>`;
             });
           } else {
             html += `<div class="outrow">
-              <span class="outname">${e.name || 'untitled'}</span>
+              <span class="outname">${e.name || 'Untitled'}</span>
               <span class="arrows">
                 <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveRoutine(${i},-1)">↑</button>
                 <button class="arrow" ${i === data.routines.length - 1 ? 'disabled' : ''} onclick="moveRoutine(${i},1)">↓</button>
               </span>
               <select onchange="moveRoutineToGroup('${e.id}', this.value)">
-                <option value="top" selected>— loose —</option>
+                <option value="top" selected>— Loose —</option>
                 ${groupList.map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
-                <option value="new">＋ new group</option>
+                <option value="new">＋ New group</option>
               </select>
               <button class="btn-x" onclick="removeRoutine('${e.id}')">${TRASH_ICON}</button>
             </div>`;
@@ -1008,15 +1062,20 @@
       return html;
     }
     function renderRoutineGroup(group) {
+      const editingG = !!editingGroup[group.id];
       let html = `<div class="group">
         <div class="group-head">
           <button class="disc" onclick="toggleGroupCollapse('${group.id}')">${group.collapsed ? '▸' : '▾'}</button>
           <input type="text" class="cname" value="${group.name}" onchange="updateGroup('${group.id}', 'name', this.value)" />
-          ${group.paused ? '<span class="badge-pause">paused</span>' : `<span class="meta">${group.items.length} item${group.items.length===1?'':'s'}</span>`}
+          ${group.paused ? '<span class="badge-pause">Paused</span>' : ''}
           <span style="flex:1;"></span>
-          ${!group.paused ? `<button class="plus" onclick="openAddRoutineModal('${group.id}')">+</button>` : ''}
-          <button class="link" onclick="toggleGroupPause('${group.id}')">${group.paused ? 'resume' : 'pause'}</button>
+          <button class="link" onclick="toggleGroupEdit('${group.id}')">${editingG ? 'Close' : 'Edit'}</button>
         </div>`;
+      if (editingG) {
+        html += `<div class="panel" style="margin-top:0;">
+          <div class="field"><label>Paused</label><button class="chip${group.paused ? ' on' : ''}" onclick="toggleGroupPause('${group.id}')">${group.paused ? 'On' : 'Off'}</button></div>
+        </div>`;
+      }
       if (!group.collapsed) {
         html += `<div class="group-items">`;
         for (const item of group.items) html += renderRoutineRow(item, group.paused, group.id);
@@ -1025,46 +1084,46 @@
       html += `</div>`;
       return html;
     }
+    function toggleGroupEdit(id) { editingGroup[id] = !editingGroup[id]; render(); }
     function renderRoutineRow(routine, groupPaused, groupId) {
       const paused = routine.paused || groupPaused;
       const due = routineDue(routine);
-      let status = 'no date set', tone = 'muted';
+      let status = 'No date set', tone = 'muted';
       if (due) {
         const d = daysUntil(due), on = fmtShort(due);
-        if (d < 0) { status = `${on} · overdue ${-d}d`; tone = 'warn'; }
-        else if (d === 0) { status = `${on} · today`; tone = 'warn'; }
-        else { status = `${on} · in ${d}d`; tone = 'ok'; }
+        if (d < 0) { status = `${on} · Overdue ${-d}d`; tone = 'warn'; }
+        else if (d === 0) { status = `${on} · Today`; tone = 'warn'; }
+        else { status = `${on} · In ${d}d`; tone = 'ok'; }
       }
       const gid = groupId ? `, '${groupId}'` : '';
       const editingFreq = !!editingFrequency[routine.id];
       let html = `<div class="routine" style="${paused ? 'opacity:.5;' : ''}">
         <div class="r-row1">
           <input type="text" class="${groupId ? 'rname' : 'cname'}" value="${routine.name}" onchange="updateRoutine('${routine.id}', 'name', this.value${gid})" />
-          ${paused
-            ? `<span class="badge-pause">paused</span>${!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${gid})">resume</button>` : ''}`
-            : `${!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${gid})">pause</button>` : ''}<button class="link" onclick="toggleEditFrequency('${routine.id}')">${editingFreq ? 'close' : 'Edit frequency'}</button>`}
+          ${paused ? `<span class="badge-pause">Paused</span>` : ''}<button class="link" onclick="toggleEditFrequency('${routine.id}')">${editingFreq ? 'Close' : 'Edit'}</button>
         </div>`;
-      if (!paused) {
-        if (editingFreq) {
-          html += `<div class="r-row2">
-            <select onchange="updateRoutine('${routine.id}', 'mode', this.value${gid})">
-              <option value="cadence" ${routine.mode === 'cadence' ? 'selected' : ''}>every…</option>
-              <option value="date" ${routine.mode === 'date' ? 'selected' : ''}>on a date</option>
-            </select>`;
-          if (routine.mode === 'cadence') {
-            html += `<select onchange="updateRoutine('${routine.id}', 'cadence', this.value${gid})">
-              <option value="weekly" ${routine.cadence === 'weekly' ? 'selected' : ''}>week</option>
-              <option value="monthly" ${routine.cadence === 'monthly' ? 'selected' : ''}>month</option>
-              <option value="yearly" ${routine.cadence === 'yearly' ? 'selected' : ''}>year</option>
-            </select>`;
-          } else {
-            html += `<input type="date" value="${routine.nextDate || ''}" onchange="updateRoutine('${routine.id}', 'nextDate', this.value${gid})" />`;
-          }
-          html += `</div>`;
+      if (editingFreq) {
+        html += `<div class="r-row2">
+          ${!groupPaused ? `<button class="chip${routine.paused ? ' on' : ''}" onclick="toggleRoutinePause('${routine.id}'${gid})">${routine.paused ? 'Paused: On' : 'Paused: Off'}</button>` : ''}
+          <select onchange="updateRoutine('${routine.id}', 'mode', this.value${gid})">
+            <option value="cadence" ${routine.mode === 'cadence' ? 'selected' : ''}>Every…</option>
+            <option value="date" ${routine.mode === 'date' ? 'selected' : ''}>On a date</option>
+          </select>`;
+        if (routine.mode === 'cadence') {
+          html += `<select onchange="updateRoutine('${routine.id}', 'cadence', this.value${gid})">
+            <option value="weekly" ${routine.cadence === 'weekly' ? 'selected' : ''}>Week</option>
+            <option value="monthly" ${routine.cadence === 'monthly' ? 'selected' : ''}>Month</option>
+            <option value="yearly" ${routine.cadence === 'yearly' ? 'selected' : ''}>Year</option>
+          </select>`;
+        } else {
+          html += `<input type="date" value="${routine.nextDate || ''}" onchange="updateRoutine('${routine.id}', 'nextDate', this.value${gid})" />`;
         }
+        html += `</div>`;
+      }
+      if (!paused) {
         html += `<div class="r-row3">
           <span class="status ${tone}">${status}</span>
-          <button class="mini" onclick="markRoutineDone('${routine.id}'${gid})">done</button>
+          <button class="mini" onclick="markRoutineDone('${routine.id}'${gid})">Done</button>
         </div>`;
       }
       html += `</div>`;
@@ -1152,30 +1211,41 @@
       g.items.push(r);
       saveData();
     }
-    function openAddRoutineModal(groupId) {
+    function openAddRoutineModal() {
+      const groupList = data.routines.filter(e => e.group);
       openModal(`
         <h3>Add a routine</h3>
         <div class="panel" style="margin-top:0;">
           <div class="field"><label>Name</label><input type="text" style="flex:1;" id="m_routName" /></div>
           <div class="field"><label>Repeats</label>
             <select id="m_routMode" onchange="modalRoutineModeChange()">
-              <option value="cadence">every…</option>
-              <option value="date">on a date</option>
+              <option value="cadence">Every…</option>
+              <option value="date">On a date</option>
             </select>
           </div>
           <div class="field" id="m_routCadenceField">
             <select id="m_routCadence">
-              <option value="weekly">week</option>
-              <option value="monthly">month</option>
-              <option value="yearly">year</option>
+              <option value="weekly">Week</option>
+              <option value="monthly">Month</option>
+              <option value="yearly">Year</option>
             </select>
           </div>
           <div class="field" id="m_routDateField" style="display:none;">
             <input type="date" id="m_routDate" />
           </div>
+          <div class="field"><label>Group</label>
+            <select id="m_routGroup" onchange="modalRoutineGroupChange()">
+              <option value="">No group</option>
+              ${groupList.map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
+              <option value="new">＋ New group</option>
+            </select>
+          </div>
+          <div class="field" id="m_routNewGroupField" style="display:none;">
+            <input type="text" style="flex:1;" id="m_routNewGroupName" placeholder="New group name" />
+          </div>
         </div>
         <div class="modal-actions">
-          <button class="mini" onclick="submitAddRoutine('${groupId || ''}')">Add</button>
+          <button class="mini" onclick="submitAddRoutine()">Add</button>
           <button class="link" onclick="closeModal()">Cancel</button>
         </div>
       `);
@@ -1185,14 +1255,26 @@
       document.getElementById('m_routCadenceField').style.display = mode === 'cadence' ? 'flex' : 'none';
       document.getElementById('m_routDateField').style.display = mode === 'date' ? 'flex' : 'none';
     }
-    function submitAddRoutine(groupId) {
+    function modalRoutineGroupChange() {
+      const v = document.getElementById('m_routGroup').value;
+      document.getElementById('m_routNewGroupField').style.display = v === 'new' ? 'flex' : 'none';
+    }
+    function submitAddRoutine() {
       const name = document.getElementById('m_routName').value.trim();
       if (!name) return;
       const mode = document.getElementById('m_routMode').value;
       const cadence = document.getElementById('m_routCadence').value;
       const dateVal = document.getElementById('m_routDate').value;
-      if (groupId) {
-        addRoutineToGroup(groupId, name, mode, cadence, dateVal);
+      const groupChoice = document.getElementById('m_routGroup').value;
+      if (groupChoice === 'new') {
+        const groupName = document.getElementById('m_routNewGroupName').value.trim() || 'New group';
+        const r = leaf(name, cadence);
+        r.mode = mode;
+        if (mode === 'date') r.nextDate = dateVal || null;
+        data.routines.push({ id: uid(), name: groupName, group: true, collapsed: false, paused: false, items: [r] });
+        saveData();
+      } else if (groupChoice) {
+        addRoutineToGroup(groupChoice, name, mode, cadence, dateVal);
       } else {
         const r = leaf(name, cadence);
         r.mode = mode;
@@ -1201,10 +1283,6 @@
         saveData();
       }
       closeModal();
-    }
-    function addGroup() {
-      data.routines.push({ id: uid(), name: 'New group', group: true, collapsed: false, paused: false, items: [] });
-      saveData();
     }
 
     // ---------------- Coming up / Summary (due banner) ----------------
@@ -1232,7 +1310,7 @@
         } else {
           for (const { r, due } of dueSoon) {
             const d = daysUntil(due);
-            const tail = d < 0 ? `<b>overdue ${-d}d</b>` : d === 0 ? `<b>today</b>` : `in ${d}d`;
+            const tail = d < 0 ? `<b>Overdue ${-d}d</b>` : d === 0 ? `<b>Today</b>` : `In ${d}d`;
             html += `<div class="due-item">${r.name} — ${fmtShort(due)}, ${tail}</div>`;
           }
         }
@@ -1255,7 +1333,7 @@
       const candidates = [];
       if (!data.sleep.paused) {
         const entries = data.sleep.entries.filter(e => inWeek(e.date));
-        const earlyNights = entries.filter(e => { const v = bedVal(e.bed); return v != null && v <= 23.5; }).length;
+        const earlyNights = entries.filter(e => { const v = bedHourValue(e); return v != null && v <= 23.5; }).length;
         const earlyMornings = entries.filter(e => { const w = toMin(e.wake); return w != null && w <= 8 * 60; }).length;
         if (earlyNights > 0) candidates.push({ score: earlyNights + 0.5, text: `${earlyNights} night${earlyNights === 1 ? '' : 's'} in bed before 11:30 this week` });
         if (earlyMornings > 0) candidates.push({ score: earlyMornings + 0.5, text: `${earlyMornings} morning${earlyMornings === 1 ? '' : 's'} up before 8 this week` });
@@ -1325,7 +1403,7 @@
         p.sessions.push({ id: uid(), date: todayKey(), minutes, note: '' });
         msg = `Logged ${fmtMinutes(minutes)} to ${p.name}.`;
       }
-      fbEl.innerHTML = `<div class="qfb ok">${msg} · <button class="link" onclick="quickUndo()">undo</button></div>`;
+      fbEl.innerHTML = `<div class="qfb ok">${msg} · <button class="link" onclick="quickUndo()">Undo</button></div>`;
       input.value = '';
       saveData();
     }
@@ -1339,10 +1417,10 @@
       data.sleep.entries.forEach(e => rows.push({ key: `sleep:${e.date}`, date: e.date, label: `Sleep — ${e.bed || '—'} → ${e.wake || '—'}` }));
       data.weight.entries.forEach(e => rows.push({ key: `weight:${e.date}`, date: e.date, label: `Weight — ${e.am ?? '—'} am / ${e.pm ?? '—'} pm` }));
       data.savings.tx.forEach(t => rows.push({ key: `savings:${t.id}`, date: t.date, label: `Savings — ${t.type === 'deposit' ? '+' : '−'}$${t.amount}${t.purpose ? ` · ${t.purpose}` : ''}` }));
-      data.activities.forEach(a => a.logs.forEach(l => rows.push({ key: `activity:${a.id}:${l.id}`, date: l.date, label: `${a.name} — ${l.minutes ? fmtMinutes(l.minutes) : 'logged'}` })));
+      data.activities.forEach(a => a.logs.forEach(l => rows.push({ key: `activity:${a.id}:${l.id}`, date: l.date, label: `${a.name} — ${l.minutes ? fmtMinutes(l.minutes) : 'Logged'}` })));
       data.projects.forEach(p => p.sessions.forEach(s => rows.push({ key: `project:${p.id}:${s.id}`, date: s.date, label: `${p.name} — ${fmtMinutes(s.minutes)}${s.note ? ` · ${s.note}` : ''}` })));
       const walkRoutine = (r, groupName) => {
-        (r.history || []).forEach(d => rows.push({ key: `routine:${r.id}:${d}`, date: d, label: `${groupName ? groupName + ' · ' : ''}${r.name} — done` }));
+        (r.history || []).forEach(d => rows.push({ key: `routine:${r.id}:${d}`, date: d, label: `${groupName ? groupName + ' · ' : ''}${r.name} — Done` }));
       };
       data.routines.forEach(e => {
         if (e.group) e.items.forEach(it => walkRoutine(it, e.name));
