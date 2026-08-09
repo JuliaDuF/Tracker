@@ -40,10 +40,14 @@
     .btn-backup { font-family: inherit; font-size: 12px; padding: 6px 11px; border-radius: 8px; border: none; background: var(--accent-soft); color: var(--accent-ink); cursor: pointer; }
 
     .section { margin-top: 50px; }
-    .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 10px; }
-    .sec-head.edit { align-items: center; }
-    .h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 22px; }
+    .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 10px; }
+    .h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 22px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; flex: 1 1 auto; min-width: 0; }
+    .h2:focus { outline: none; border-bottom-color: var(--accent); }
     .meta { font-size: 12px; color: var(--muted); }
+
+    .tabs { display: flex; gap: 16px; margin-bottom: 10px; }
+    .tab { font-family: inherit; font-size: 13px; color: var(--muted); background: none; border: none; padding: 0 0 4px; cursor: pointer; border-bottom: 2px solid transparent; }
+    .tab.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 500; }
 
     .arrows { display: inline-flex; gap: 3px; }
     .arrow { font-family: inherit; font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; }
@@ -77,7 +81,7 @@
     .link { background: none; border: none; color: var(--muted); font-size: 12.5px; cursor: pointer; padding: 0; font-family: inherit; }
     .mini { font-family: inherit; font-size: 13px; color: var(--accent-ink); background: var(--accent-soft); border: none; border-radius: 8px; padding: 8px 13px; cursor: pointer; }
 
-    input[type="text"]:not(.cname):not(.rname), input[type="number"], input[type="date"], input[type="time"], select {
+    input[type="text"]:not(.cname):not(.rname):not(.h2), input[type="number"], input[type="date"], input[type="time"], select {
       font-family: inherit; font-size: 14px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
     }
     input.short { width: 80px; }
@@ -96,6 +100,8 @@
     .stage-now { font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 16px; color: var(--ink); margin-top: 2px; }
 
     .routine { display: flex; align-items: center; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    .r-row1, .r-row2, .r-row3 { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; }
+    .r-row1 { justify-content: space-between; }
     .rname { flex: 1 1 130px; font-size: 16px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; }
     .status { font-size: 13px; color: var(--muted); white-space: nowrap; }
     .status.warn { color: var(--warn); }
@@ -132,7 +138,6 @@
         <button class="editbtn" id="editBtn" onclick="toggleEdit()">Edit</button>
       </div>
       <h1 class="title">The second half</h1>
-      <p class="note" id="headerNote">Log the small things as they happen. Pause anything you need a break from.</p>
     </header>
 
     <div class="backup-buttons">
@@ -145,7 +150,7 @@
     <div class="quick" id="quickWrap">
       <div class="quickbox">
         <input type="text" class="qinput" id="quickInput" placeholder='say it plainly — "瑜伽 20分钟", "骑马1次", "浇完花了"' onkeydown="if(event.key==='Enter') handleQuick()" />
-        <button class="mini" onclick="handleQuick()">log</button>
+        <button class="mini" onclick="handleQuick()">Add</button>
       </div>
       <div id="quickFeedback"></div>
     </div>
@@ -153,8 +158,6 @@
     <div id="dueBanner"></div>
 
     <div id="sectionsContainer"></div>
-
-    <p class="foot">Steady is enough. Come back when you've done a thing.</p>
   </div>
 
   <script>
@@ -180,6 +183,7 @@
       return x;
     }
     function sleepDur(bed, wake) { const b = toMin(bed), w = toMin(wake); if (b == null || w == null) return null; let ww = w; if (ww <= b) ww += 1440; return (ww - b) / 60; }
+    function bedVal(bed) { const b = toMin(bed); if (b == null) return null; let h = b / 60; if (h < 12) h += 24; return h; }
 
     const leaf = (name, cad, aliases = []) => ({ id: uid(), name, mode: 'cadence', cadence: cad, nextDate: null, history: [], paused: false, aliases });
 
@@ -187,6 +191,7 @@
 
     const SEED = {
       sectionOrder: ['body', 'savings', 'movement', 'projects', 'routines'],
+      sectionTitles: { body: 'Body', savings: 'Savings', movement: 'Movement', projects: 'Projects', routines: 'Routines' },
       bodyOrder: ['sleep', 'weight'],
       sleep: { entries: [], paused: false },
       weight: { unit: 'kg', entries: [], paused: false },
@@ -215,9 +220,12 @@
     let data = JSON.parse(localStorage.getItem('halfyear-v5') || JSON.stringify(SEED));
     // fill in any missing fields for older saved data
     if (!data.sectionOrder) data.sectionOrder = ['body', 'savings', 'movement', 'projects', 'routines'];
+    if (!data.sectionTitles) data.sectionTitles = { body: 'Body', savings: 'Savings', movement: 'Movement', projects: 'Projects', routines: 'Routines' };
     if (!data.bodyOrder) data.bodyOrder = ['sleep', 'weight'];
     if (!data.savings) data.savings = { tx: [] };
     let edit = false;
+    let showGoals = false;
+    let dueView = 'due';
 
     // ---------------- Cloud sync (Supabase, no login) ----------------
     const SUPABASE_URL = 'https://qagmxlivtxpzpfvfozdk.supabase.co';
@@ -254,6 +262,7 @@
         if (rows && rows.length > 0 && rows[0].data) {
           data = rows[0].data;
           if (!data.sectionOrder) data.sectionOrder = ['body', 'savings', 'movement', 'projects', 'routines'];
+          if (!data.sectionTitles) data.sectionTitles = { body: 'Body', savings: 'Savings', movement: 'Movement', projects: 'Projects', routines: 'Routines' };
           if (!data.bodyOrder) data.bodyOrder = ['sleep', 'weight'];
           if (!data.savings) data.savings = { tx: [] };
           localStorage.setItem('halfyear-v5', JSON.stringify(data));
@@ -296,9 +305,6 @@
       edit = !edit;
       document.getElementById('editBtn').textContent = edit ? 'Confirm' : 'Edit';
       document.getElementById('editBtn').classList.toggle('on', edit);
-      document.getElementById('headerNote').textContent = edit
-        ? 'Use the arrows to reorder sections and items. Press Confirm when done.'
-        : 'Log the small things as they happen. Pause anything you need a break from.';
       document.getElementById('quickWrap').style.display = edit ? 'none' : '';
       document.getElementById('dueBanner').style.display = edit ? 'none' : '';
       render();
@@ -322,6 +328,7 @@
         try {
           data = JSON.parse(ev.target.result);
           if (!data.sectionOrder) data.sectionOrder = ['body', 'savings', 'movement', 'projects', 'routines'];
+          if (!data.sectionTitles) data.sectionTitles = { body: 'Body', savings: 'Savings', movement: 'Movement', projects: 'Projects', routines: 'Routines' };
           if (!data.bodyOrder) data.bodyOrder = ['sleep', 'weight'];
           if (!data.savings) data.savings = { tx: [] };
           saveData();
@@ -353,14 +360,15 @@
     }
 
     function renderSection(key, idx, total) {
-      let head = `<div class="sec-head${edit ? ' edit' : ''}"><h2 class="h2">${SECTION_TITLE[key]}</h2>`;
+      const title = data.sectionTitles[key] || SECTION_TITLE[key] || key;
+      let head = `<div class="sec-head${edit ? ' edit' : ''}"><input type="text" class="h2" value="${title}" onchange="updateSectionTitle('${key}', this.value)" />`;
       if (edit) {
         head += `<span class="arrows">
           <button class="arrow" ${idx === 0 ? 'disabled' : ''} onclick="moveSection(${idx},-1)">↑</button>
           <button class="arrow" ${idx === total - 1 ? 'disabled' : ''} onclick="moveSection(${idx},1)">↓</button>
         </span>`;
-      } else {
-        head += `<span class="meta">${sectionMeta(key)}</span>`;
+      } else if (key === 'movement') {
+        head += `<button class="editbtn${showGoals ? ' on' : ''}" onclick="toggleShowGoals()">Goal</button>`;
       }
       head += `</div>`;
 
@@ -373,14 +381,8 @@
 
       return `<section class="section">${head}${body}</section>`;
     }
-    function sectionMeta(key) {
-      if (key === 'body') return 'sleep & weight, over time';
-      if (key === 'savings') return 'a jar of gold, silver & bronze';
-      if (key === 'movement') return 'by day, time, or kind';
-      if (key === 'projects') return 'time logged, stage by stage';
-      if (key === 'routines') return 'grouped, on a rhythm or a set day';
-      return '';
-    }
+    function updateSectionTitle(key, value) { data.sectionTitles[key] = value; saveData(); }
+    function toggleShowGoals() { showGoals = !showGoals; render(); }
     function moveSection(idx, dir) { data.sectionOrder = arrMove(data.sectionOrder, idx, dir); saveData(); }
 
     // ---------------- Body (Sleep / Weight) ----------------
@@ -410,10 +412,12 @@
         </div>`;
       if (!data.sleep.paused) {
         const dur = te && sleepDur(te.bed, te.wake);
-        html += `<div class="pace" style="margin-top:4px;">
-          ${te ? `last night: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}` : 'log when you went to bed and woke.'}
-        </div>
-        <div class="row">
+        if (te) {
+          html += `<div class="pace" style="margin-top:4px;">
+            last night: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}
+          </div>`;
+        }
+        html += `<div class="row">
           <span style="font-size:12px;color:var(--muted);">to bed</span>
           <input type="time" id="bedInput" />
           <span style="font-size:12px;color:var(--muted);">up at</span>
@@ -446,10 +450,12 @@
           <button class="link" onclick="toggleWeightPause()">${data.weight.paused ? 'resume' : 'pause'}</button>
         </div>`;
       if (!data.weight.paused) {
-        html += `<div class="pace" style="margin-top:4px;">
-          ${te ? `today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (${data.weight.unit})` : `two readings a day, morning and evening (${data.weight.unit}).`}
-        </div>
-        <div class="row">
+        if (te) {
+          html += `<div class="pace" style="margin-top:4px;">
+            today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (${data.weight.unit})
+          </div>`;
+        }
+        html += `<div class="row">
           <span style="font-size:12px;color:var(--muted);">morning</span>
           <input type="number" step="0.1" class="short" id="weightAm" />
           <span style="font-size:12px;color:var(--muted);">evening</span>
@@ -600,7 +606,9 @@
         html += `<div class="card${act.paused ? ' paused' : ''}">
           <div class="card-head">
             <input type="text" class="cname" value="${act.name}" onchange="updateActivity('${act.id}', 'name', this.value)" />
-            ${act.paused ? '<span class="badge-pause">paused</span>' : ''}
+            ${act.paused
+              ? `<span class="badge-pause">paused</span><button class="link" onclick="toggleActivityPause('${act.id}')">resume</button>`
+              : `<button class="link" onclick="toggleActivityPause('${act.id}')">pause</button>`}
           </div>
           <div class="figure" style="font-size:20px;">${days}<small>days</small> · ${fmtMinutes(totalMin)}<small>total</small> · ${sessions}<small>sessions</small></div>`;
         if (act.hasGoal && !act.paused) {
@@ -615,11 +623,9 @@
         if (!act.paused) {
           html += `<div class="row">
             <input type="number" min="0" placeholder="min" class="short" id="actMin${act.id}" />
-            <button class="mini" onclick="logActivity('${act.id}')">log today</button>
-            <button class="link" onclick="toggleActivityGoal('${act.id}')">${act.showGoalPanel ? 'close' : 'goal'}</button>
-            <button class="link" onclick="toggleActivityPause('${act.id}')">pause</button>
+            <button class="mini" onclick="logActivity('${act.id}')">Add</button>
           </div>`;
-          if (act.showGoalPanel) {
+          if (showGoals) {
             html += `<div class="panel">
               <div class="field"><label>1 session</label><input type="number" min="0" class="short" value="${act.defaultMin ?? 30}" onchange="updateActivity('${act.id}', 'defaultMin', Number(this.value))" /><span style="font-size:12px;color:var(--muted);">min · used for "1次" &amp; bare logs</span></div>
               <div class="field"><label>Match</label><input type="text" style="flex:1 1 120px;" value="${(act.aliases || []).join(' ')}" placeholder="words the quick box should match" onchange="updateActivity('${act.id}', 'aliases', this.value.split(/[\\s,，、]+/).filter(Boolean))" /></div>
@@ -645,8 +651,6 @@
               html += `</div>`;
             }
           }
-        } else {
-          html += `<div class="row"><button class="link" onclick="toggleActivityPause('${act.id}')">resume</button></div>`;
         }
         html += `</div>`;
       }
@@ -683,7 +687,6 @@
       if (a) { a.logs.push({ id: uid(), date: todayKey(), minutes: mins || 0 }); saveData(); }
     }
     function removeActivityLog(actId, logId) { const a = data.activities.find(x => x.id === actId); if (a) { a.logs = a.logs.filter(l => l.id !== logId); saveData(); } }
-    function toggleActivityGoal(id) { const a = data.activities.find(x => x.id === id); if (a) { a.showGoalPanel = !a.showGoalPanel; saveData(); } }
     function toggleActivityHasGoal(id) { const a = data.activities.find(x => x.id === id); if (a) { a.hasGoal = !a.hasGoal; saveData(); } }
     function toggleActivityPause(id) { const a = data.activities.find(x => x.id === id); if (a) { a.paused = !a.paused; saveData(); } }
     function toggleActivityHist(id) { const a = data.activities.find(x => x.id === id); if (a) { a.showHist = !a.showHist; saveData(); } }
@@ -733,7 +736,7 @@
             <div class="row">
               <input type="number" min="0" placeholder="min" class="short" id="projMin${proj.id}" />
               <input type="text" placeholder="what you did (optional)" id="projNote${proj.id}" />
-              <button class="mini" onclick="logProjectSession('${proj.id}')">log session</button>
+              <button class="mini" onclick="logProjectSession('${proj.id}')">Add</button>
             </div>
             <div class="row">
               ${!allDone && n > 0 ? `<button class="link" onclick="setProjectStage('${proj.id}', ${current + 1})">finish this stage →</button>` : ''}
@@ -745,7 +748,14 @@
           if (proj.showStages) {
             html += `<div class="panel">`;
             proj.stages.forEach((s, i) => {
-              html += `<div class="field"><input type="text" style="flex:1;" value="${s}" onchange="updateProjectStage('${proj.id}',${i},this.value)" /><button class="link" onclick="removeProjectStage('${proj.id}',${i})">remove</button></div>`;
+              html += `<div class="field">
+                <span class="arrows">
+                  <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveProjectStage('${proj.id}',${i},-1)">↑</button>
+                  <button class="arrow" ${i === proj.stages.length - 1 ? 'disabled' : ''} onclick="moveProjectStage('${proj.id}',${i},1)">↓</button>
+                </span>
+                <input type="text" style="flex:1;" value="${s}" onchange="updateProjectStage('${proj.id}',${i},this.value)" />
+                <button class="link" onclick="removeProjectStage('${proj.id}',${i})">remove</button>
+              </div>`;
             });
             html += `<div class="field"><input type="text" style="flex:1;" id="stageDraft${proj.id}" placeholder="add a stage…" onkeydown="if(event.key==='Enter') addProjectStage('${proj.id}')" /><button class="mini" onclick="addProjectStage('${proj.id}')">add</button></div></div>`;
           }
@@ -778,6 +788,19 @@
     function toggleProjectStages(id) { const p = data.projects.find(x => x.id === id); if (p) { p.showStages = !p.showStages; saveData(); } }
     function toggleProjectHist(id) { const p = data.projects.find(x => x.id === id); if (p) { p.showHist = !p.showHist; saveData(); } }
     function updateProjectStage(id, i, v) { const p = data.projects.find(x => x.id === id); if (p) { p.stages[i] = v; saveData(); } }
+    function moveProjectStage(id, idx, dir) {
+      const p = data.projects.find(x => x.id === id);
+      if (!p) return;
+      const j = idx + dir;
+      if (j < 0 || j >= p.stages.length) return;
+      const stages = p.stages.slice();
+      [stages[idx], stages[j]] = [stages[j], stages[idx]];
+      let cur = p.current;
+      if (cur === idx) cur = j; else if (cur === j) cur = idx;
+      p.stages = stages;
+      p.current = cur;
+      saveData();
+    }
     function addProjectStage(id) {
       const input = document.getElementById(`stageDraft${id}`);
       const s = input.value.trim();
@@ -894,28 +917,34 @@
         else if (d === 0) { status = `${on} · today`; tone = 'warn'; }
         else { status = `${on} · in ${d}d`; tone = 'ok'; }
       }
-      let html = `<div class="routine${paused ? '' : ''}" style="${paused ? 'opacity:.5;' : ''}">
-        <input type="text" class="rname" value="${routine.name}" onchange="updateRoutine('${routine.id}', 'name', this.value${groupId ? `, '${groupId}'` : ''})" />`;
+      const gid = groupId ? `, '${groupId}'` : '';
+      let html = `<div class="routine" style="${paused ? 'opacity:.5;' : ''}">
+        <div class="r-row1">
+          <input type="text" class="rname" value="${routine.name}" onchange="updateRoutine('${routine.id}', 'name', this.value${gid})" />
+          ${paused
+            ? `<span class="badge-pause">paused</span>${!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${gid})">resume</button>` : ''}`
+            : (!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${gid})">pause</button>` : '')}
+        </div>`;
       if (!paused) {
-        html += `<select onchange="updateRoutine('${routine.id}', 'mode', this.value${groupId ? `, '${groupId}'` : ''})">
-          <option value="cadence" ${routine.mode === 'cadence' ? 'selected' : ''}>every…</option>
-          <option value="date" ${routine.mode === 'date' ? 'selected' : ''}>on a date</option>
-        </select>`;
+        html += `<div class="r-row2">
+          <select onchange="updateRoutine('${routine.id}', 'mode', this.value${gid})">
+            <option value="cadence" ${routine.mode === 'cadence' ? 'selected' : ''}>every…</option>
+            <option value="date" ${routine.mode === 'date' ? 'selected' : ''}>on a date</option>
+          </select>`;
         if (routine.mode === 'cadence') {
-          html += `<select onchange="updateRoutine('${routine.id}', 'cadence', this.value${groupId ? `, '${groupId}'` : ''})">
+          html += `<select onchange="updateRoutine('${routine.id}', 'cadence', this.value${gid})">
             <option value="weekly" ${routine.cadence === 'weekly' ? 'selected' : ''}>week</option>
             <option value="monthly" ${routine.cadence === 'monthly' ? 'selected' : ''}>month</option>
             <option value="yearly" ${routine.cadence === 'yearly' ? 'selected' : ''}>year</option>
           </select>`;
         } else {
-          html += `<input type="date" value="${routine.nextDate || ''}" onchange="updateRoutine('${routine.id}', 'nextDate', this.value${groupId ? `, '${groupId}'` : ''})" />`;
+          html += `<input type="date" value="${routine.nextDate || ''}" onchange="updateRoutine('${routine.id}', 'nextDate', this.value${gid})" />`;
         }
-        html += `<span class="status ${tone}">${status}</span>
-          <button class="mini" onclick="markRoutineDone('${routine.id}'${groupId ? `, '${groupId}'` : ''})">done</button>
-          ${!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${groupId ? `, '${groupId}'` : ''})">pause</button>` : ''}`;
-      } else {
-        html += `<span class="badge-pause">paused</span>`;
-        if (!groupPaused) html += `<button class="link" onclick="toggleRoutinePause('${routine.id}'${groupId ? `, '${groupId}'` : ''})">resume</button>`;
+        html += `</div>
+        <div class="r-row3">
+          <span class="status ${tone}">${status}</span>
+          <button class="mini" onclick="markRoutineDone('${routine.id}'${gid})">done</button>
+        </div>`;
       }
       html += `</div>`;
       return html;
@@ -1001,28 +1030,71 @@
       saveData();
     }
 
-    // ---------------- Coming up (due banner) ----------------
+    // ---------------- Coming up / Summary (due banner) ----------------
+    function setDueView(v) { dueView = v; renderDueBanner(); }
     function renderDueBanner() {
       const dueEl = document.getElementById('dueBanner');
       if (edit) { dueEl.innerHTML = ''; return; }
-      const leaves = [];
-      data.routines.forEach(e => {
-        if (e.group) { if (!e.paused) e.items.forEach(it => { if (!it.paused) leaves.push(it); }); }
-        else if (!e.paused) leaves.push(e);
-      });
-      const dueSoon = leaves
-        .map(r => ({ r, due: routineDue(r) }))
-        .filter(x => x.due && daysUntil(x.due) <= 3)
-        .sort((a, b) => (a.due < b.due ? -1 : 1));
-      if (dueSoon.length === 0) { dueEl.innerHTML = ''; return; }
-      let html = `<div class="due-banner"><h3>Coming up</h3>`;
-      for (const { r, due } of dueSoon) {
-        const d = daysUntil(due);
-        const tail = d < 0 ? `<b>overdue ${-d}d</b>` : d === 0 ? `<b>today</b>` : `in ${d}d`;
-        html += `<div class="due-item">${r.name} — ${fmtShort(due)}, ${tail}</div>`;
+      let html = `<div class="due-banner">
+        <div class="tabs">
+          <button class="tab${dueView === 'due' ? ' on' : ''}" onclick="setDueView('due')">Coming up</button>
+          <button class="tab${dueView === 'summary' ? ' on' : ''}" onclick="setDueView('summary')">Summary</button>
+        </div>`;
+      if (dueView === 'due') {
+        const leaves = [];
+        data.routines.forEach(e => {
+          if (e.group) { if (!e.paused) e.items.forEach(it => { if (!it.paused) leaves.push(it); }); }
+          else if (!e.paused) leaves.push(e);
+        });
+        const dueSoon = leaves
+          .map(r => ({ r, due: routineDue(r) }))
+          .filter(x => x.due && daysUntil(x.due) <= 3)
+          .sort((a, b) => (a.due < b.due ? -1 : 1));
+        if (dueSoon.length === 0) {
+          html += `<div class="due-item">Nothing due soon.</div>`;
+        } else {
+          for (const { r, due } of dueSoon) {
+            const d = daysUntil(due);
+            const tail = d < 0 ? `<b>overdue ${-d}d</b>` : d === 0 ? `<b>today</b>` : `in ${d}d`;
+            html += `<div class="due-item">${r.name} — ${fmtShort(due)}, ${tail}</div>`;
+          }
+        }
+      } else {
+        const lines = computeWeekSummary();
+        if (lines.length === 0) {
+          html += `<div class="due-item">Nothing logged yet this week.</div>`;
+        } else {
+          for (const line of lines) html += `<div class="due-item">${line}</div>`;
+        }
       }
       html += `</div>`;
       dueEl.innerHTML = html;
+    }
+    function computeWeekSummary() {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      start.setDate(start.getDate() - 6);
+      const inWeek = (dateStr) => parseDate(dateStr) >= start;
+      const candidates = [];
+      if (!data.sleep.paused) {
+        const entries = data.sleep.entries.filter(e => inWeek(e.date));
+        const earlyNights = entries.filter(e => { const v = bedVal(e.bed); return v != null && v <= 23.5; }).length;
+        const earlyMornings = entries.filter(e => { const w = toMin(e.wake); return w != null && w <= 8 * 60; }).length;
+        if (earlyNights > 0) candidates.push({ score: earlyNights + 0.5, text: `${earlyNights} night${earlyNights === 1 ? '' : 's'} in bed before 11:30 this week` });
+        if (earlyMornings > 0) candidates.push({ score: earlyMornings + 0.5, text: `${earlyMornings} morning${earlyMornings === 1 ? '' : 's'} up before 8 this week` });
+      }
+      data.activities.forEach(a => {
+        if (a.paused) return;
+        const logs = a.logs.filter(l => inWeek(l.date));
+        if (logs.length === 0) return;
+        const mins = logs.reduce((s, l) => s + (l.minutes || 0), 0);
+        const text = mins > 0
+          ? `${a.name} ${logs.length}× this week — ${fmtMinutes(mins)}`
+          : `${a.name} ${logs.length}× this week`;
+        candidates.push({ score: mins || logs.length, text });
+      });
+      candidates.sort((a, b) => b.score - a.score);
+      return candidates.slice(0, 3).map(c => c.text);
     }
 
     // ---------------- Quick log: natural-language matching ----------------
