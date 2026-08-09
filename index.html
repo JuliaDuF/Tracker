@@ -98,6 +98,9 @@
     input.short { width: 68px; }
     input.coin-in { width: 52px; }
     input.unit { width: 46px; text-align: center; }
+    input.timeinput { width: 100px; }
+    select { -webkit-appearance: none; appearance: none; }
+    select.dayselect { width: auto; min-width: 88px; font-size: 14px; padding: 7px 8px; }
     .cname:focus, .rname:focus { outline: none; border-bottom-color: var(--accent); }
 
     .panel { margin-top: 12px; padding: 15px; background: var(--surface); border-radius: 11px; display: flex; flex-direction: column; gap: 11px; }
@@ -280,8 +283,8 @@
     let editingGroup = {};
     let dueView = 'due';
     let bodyView = 'list';
-    let savingsExpanded = false;
-    let movementView = 'bars';
+    let movementView = 'calendar';
+    let sectionCollapsed = {};
     let calMonth = new Date().getMonth();
     let calYear = new Date().getFullYear();
     let sleepEditing = false;
@@ -423,36 +426,41 @@
       renderDataPanel();
     }
 
+    function isCollapsed(key) { return sectionCollapsed[key] !== false; }
+    function toggleSectionCollapse(key) { sectionCollapsed[key] = !isCollapsed(key); render(); }
     function renderSection(key, idx, total) {
       const title = data.sectionTitles[key] || SECTION_TITLE[key] || key;
-      let head = `<div class="sec-head${edit ? ' edit' : ''}"><input type="text" class="h2" value="${title}" onchange="updateSectionTitle('${key}', this.value)" />`;
+      const collapsed = isCollapsed(key);
+      let head = `<div class="sec-head${edit ? ' edit' : ''}">
+        <button class="disc" onclick="toggleSectionCollapse('${key}')">${collapsed ? '▸' : '▾'}</button>
+        <input type="text" class="h2" value="${title}" onchange="updateSectionTitle('${key}', this.value)" />`;
       if (edit) {
         head += `<span class="arrows">
           <button class="arrow" ${idx === 0 ? 'disabled' : ''} onclick="moveSection(${idx},-1)">↑</button>
           <button class="arrow" ${idx === total - 1 ? 'disabled' : ''} onclick="moveSection(${idx},1)">↓</button>
         </span>`;
-      } else if (key === 'movement') {
+      } else if (!collapsed && key === 'movement') {
         head += `<span class="head-controls">
-          <button class="editbtn${movementView === 'calendar' ? ' on' : ''}" onclick="toggleMovementView()">Calendar</button>
+          <button class="editbtn${movementView === 'bars' ? ' on' : ''}" onclick="toggleMovementView()">Bars</button>
           <button class="plus" onclick="openAddActivityModal()">+</button>
         </span>`;
-      } else if (key === 'body') {
+      } else if (!collapsed && key === 'body') {
         head += `<button class="editbtn${bodyView === 'chart' ? ' on' : ''}" onclick="toggleBodyView()">Chart</button>`;
-      } else if (key === 'savings') {
-        head += `<button class="editbtn${savingsExpanded ? ' on' : ''}" onclick="toggleSavingsExpanded()">${savingsExpanded ? 'Hide' : 'Show'}</button>`;
-      } else if (key === 'projects') {
+      } else if (!collapsed && key === 'projects') {
         head += `<button class="plus" onclick="openAddProjectModal()">+</button>`;
-      } else if (key === 'routines') {
+      } else if (!collapsed && key === 'routines') {
         head += `<button class="plus" onclick="openAddRoutineModal()">+</button>`;
       }
       head += `</div>`;
 
       let body = '';
-      if (key === 'body') body = renderBody();
-      else if (key === 'savings') body = renderSavings();
-      else if (key === 'movement') body = renderMovement();
-      else if (key === 'projects') body = renderProjects();
-      else if (key === 'routines') body = renderRoutines();
+      if (edit || !collapsed) {
+        if (key === 'body') body = renderBody();
+        else if (key === 'savings') body = renderSavings();
+        else if (key === 'movement') body = renderMovement();
+        else if (key === 'projects') body = renderProjects();
+        else if (key === 'routines') body = renderRoutines();
+      }
 
       return `<section class="section">${head}${body}</section>`;
     }
@@ -512,13 +520,13 @@
         }
         html += `<div class="row">
           <span style="font-size:12px;color:var(--muted);">To bed</span>
-          <input type="time" id="bedInput" value="${te ? te.bed : ''}" />
-          <select id="bedDaySel"><option value="yesterday" ${bedDay==='yesterday'?'selected':''}>Yesterday</option><option value="today" ${bedDay==='today'?'selected':''}>Today</option></select>
+          <input type="time" class="timeinput" id="bedInput" value="${te ? te.bed : ''}" />
+          <select class="dayselect" id="bedDaySel"><option value="yesterday" ${bedDay==='yesterday'?'selected':''}>Yesterday</option><option value="today" ${bedDay==='today'?'selected':''}>Today</option></select>
         </div>
         <div class="row">
           <span style="font-size:12px;color:var(--muted);">Up at</span>
-          <input type="time" id="wakeInput" value="${te ? te.wake : ''}" />
-          <select id="wakeDaySel"><option value="today" ${wakeDay==='today'?'selected':''}>Today</option><option value="yesterday" ${wakeDay==='yesterday'?'selected':''}>Yesterday</option></select>
+          <input type="time" class="timeinput" id="wakeInput" value="${te ? te.wake : ''}" />
+          <select class="dayselect" id="wakeDaySel"><option value="today" ${wakeDay==='today'?'selected':''}>Today</option><option value="yesterday" ${wakeDay==='yesterday'?'selected':''}>Yesterday</option></select>
           <button class="mini" onclick="saveSleep()">Save</button>
         </div>`;
       }
@@ -636,9 +644,7 @@
         <div class="coin-label">${count}× ${kind.charAt(0).toUpperCase()}${kind.slice(1)}${count > cap ? ` (+${count - cap})` : ''}</div>
       </div>`;
     }
-    function toggleSavingsExpanded() { savingsExpanded = !savingsExpanded; render(); }
     function renderSavings() {
-      if (!savingsExpanded) return '';
       const tx = data.savings.tx;
       const balance = tx.reduce((s, t) => s + (t.type === 'deposit' ? t.amount : -t.amount), 0);
       const gold = Math.floor(balance / 1000), rem = balance - gold * 1000;
@@ -665,10 +671,13 @@
       openModal(`
         <h3>How much do you want to ${label}?</h3>
         <div class="panel" style="margin-top:0;">
-          <div class="field"><label>Coins</label>
-            <span class="cdot" style="border-color:var(--gold);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="m_coinG" />
-            <span class="cdot" style="border-color:var(--silver);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="m_coinS" />
-            <span class="cdot" style="border-color:var(--bronze);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="m_coinB" />
+          <div class="field" style="flex-direction:column;align-items:flex-start;gap:8px;">
+            <label>Coins</label>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="cdot" style="border-color:var(--gold);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="m_coinG" />
+              <span class="cdot" style="border-color:var(--silver);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="m_coinS" />
+              <span class="cdot" style="border-color:var(--bronze);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="m_coinB" />
+            </div>
           </div>
           <div class="field"><label>For</label><input type="text" style="flex:1 1 120px;" id="m_coinPurpose" placeholder="${type === 'withdraw' ? "What it's for (required)" : "What it's for (optional)"}" /></div>
           <span style="font-size:12px;color:var(--muted);">Gold $1000 · Silver $500 · Bronze $100</span>
