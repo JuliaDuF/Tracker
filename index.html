@@ -9,11 +9,12 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --paper: #E7E7E0; --surface: #F1F1EB; --ink: #2A2B26; --muted: #83857A; --line: #D4D4CA;
+      --line-soft: rgba(42,43,38,0.10);
       --accent: #6F7F73; --accent-ink: #55634F; --accent-soft: rgba(111,127,115,0.13); --warn: #A8735B;
       --gold: #B9985E; --silver: #9AA6B0; --bronze: #A9744F;
     }
     body { background: var(--paper); color: var(--ink); font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; }
-    .wrap { max-width: 680px; margin: 0 auto; padding: 56px 26px 128px; }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 48px 26px 90px; }
     .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .eyebrow { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
     .title { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 40px; line-height: 1.04; margin: 14px 0 0; }
@@ -21,8 +22,10 @@
 
     .editbtn { font-family: inherit; font-size: 13px; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid transparent; border-radius: 20px; padding: 8px 16px; cursor: pointer; white-space: nowrap; }
     .editbtn.on { background: var(--accent); color: #fff; }
+    .plus { font-family: inherit; font-size: 16px; line-height: 1; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-soft); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .head-controls { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 
-    .quick { margin: 20px 0; }
+    .quick { margin: 18px 0; }
     .quickbox { display: flex; gap: 10px; align-items: center; }
     .qinput { flex: 1 1 auto; font-family: inherit; font-size: 16px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; min-width: 0; }
     .qinput::placeholder { color: var(--muted); }
@@ -31,21 +34,24 @@
     .qfb.ok { color: var(--accent-ink); }
     .qfb.err { color: var(--warn); }
 
-    .due-banner { margin: 20px 0; padding: 15px 17px; background: var(--surface); border: 1px solid var(--line); border-radius: 13px; }
-    .due-banner h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 14px; margin: 0 0 7px; }
+    .due-banner { margin: 18px 0; padding: 15px 17px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: 13px; }
     .due-item { font-size: 13px; color: var(--muted); padding: 3px 0; }
     .due-item b { color: var(--warn); font-weight: 500; }
+    .data-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: 13px; cursor: pointer; }
+    .data-row input[type="checkbox"] { flex: 0 0 auto; }
+    .data-date { flex: 0 0 62px; color: var(--muted); }
+    .data-label { flex: 1 1 auto; color: var(--ink); }
 
-    .backup-buttons { display: flex; gap: 8px; margin-bottom: 20px; }
+    .backup-buttons { display: flex; gap: 8px; margin-bottom: 18px; align-items: center; }
     .btn-backup { font-family: inherit; font-size: 12px; padding: 6px 11px; border-radius: 8px; border: none; background: var(--accent-soft); color: var(--accent-ink); cursor: pointer; }
 
-    .section { margin-top: 50px; }
-    .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 10px; }
+    .section { margin-top: 40px; }
+    .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line-soft); padding-bottom: 10px; margin-bottom: 8px; }
     .h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 22px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; flex: 1 1 auto; min-width: 0; }
     .h2:focus { outline: none; border-bottom-color: var(--accent); }
     .meta { font-size: 12px; color: var(--muted); }
 
-    .tabs { display: flex; gap: 16px; margin-bottom: 10px; }
+    .tabs { display: flex; gap: 16px; margin-bottom: 8px; }
     .tab { font-family: inherit; font-size: 13px; color: var(--muted); background: none; border: none; padding: 0 0 4px; cursor: pointer; border-bottom: 2px solid transparent; }
     .tab.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 500; }
 
@@ -53,53 +59,53 @@
     .arrow { font-family: inherit; font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; }
     .arrow:disabled { opacity: 0.3; cursor: default; }
 
-    .outrow { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .outrow { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
     .outname { flex: 1 1 auto; font-size: 15px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .outrow.grp .outname { color: var(--accent-ink); font-weight: 500; }
     .outrow.leaf { padding-left: 22px; }
 
-    .card { padding: 22px 0; border-bottom: 1px solid var(--line); }
+    .card { padding: 18px 0; border-bottom: 1px solid var(--line-soft); }
     .card.paused { opacity: 0.5; }
     .card-head { display: flex; align-items: center; gap: 10px; }
     .cname { flex: 1 1 auto; font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 18px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; }
     .cname:focus { outline: none; border-bottom-color: var(--accent); }
-    .btn-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 4px; }
+    .btn-x { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; display: inline-flex; align-items: center; justify-content: center; }
     .badge-pause { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
 
-    .figure { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 24px; margin-top: 12px; }
+    .figure { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 24px; margin-top: 10px; }
     .figure small { font-size: 14px; color: var(--muted); font-family: 'Inter', sans-serif; font-weight: 400; margin-left: 7px; }
-    .bar { height: 6px; background: var(--line); border-radius: 6px; overflow: hidden; margin: 10px 0; }
+    .bar { height: 6px; background: var(--line-soft); border-radius: 6px; overflow: hidden; margin: 10px 0; }
     .bar-fill { height: 100%; background: var(--accent); border-radius: 6px; }
     .pace { font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 15px; color: var(--muted); line-height: 1.45; }
     .pace b { color: var(--accent-ink); font-weight: 400; font-style: normal; }
 
-    .chips { display: flex; gap: 7px; flex-wrap: wrap; margin: 12px 0 6px; }
+    .chips { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 0 6px; }
     .chip { font-family: inherit; font-size: 12px; padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
     .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
 
-    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
     .link { background: none; border: none; color: var(--muted); font-size: 12.5px; cursor: pointer; padding: 0; font-family: inherit; }
     .mini { font-family: inherit; font-size: 13px; color: var(--accent-ink); background: var(--accent-soft); border: none; border-radius: 8px; padding: 8px 13px; cursor: pointer; }
 
     input[type="text"]:not(.cname):not(.rname):not(.h2), input[type="number"], input[type="date"], input[type="time"], select {
       font-family: inherit; font-size: 14px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
     }
-    input.short { width: 80px; }
+    input.short { width: 68px; }
     input.coin-in { width: 52px; }
     input.unit { width: 46px; text-align: center; }
     .cname:focus, .rname:focus { outline: none; border-bottom-color: var(--accent); }
 
-    .panel { margin-top: 14px; padding: 15px; background: var(--surface); border-radius: 11px; display: flex; flex-direction: column; gap: 11px; }
+    .panel { margin-top: 12px; padding: 15px; background: var(--surface); border-radius: 11px; display: flex; flex-direction: column; gap: 11px; }
     .field { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
     .field label { min-width: 60px; }
 
-    .pips { display: flex; gap: 6px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+    .pips { display: flex; gap: 6px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
     .pip { width: 26px; height: 8px; border-radius: 5px; border: 1px solid var(--line); background: transparent; cursor: pointer; padding: 0; }
     .pip.done { background: var(--accent); border-color: var(--accent); }
     .pip.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
     .stage-now { font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 16px; color: var(--ink); margin-top: 2px; }
 
-    .routine { display: flex; align-items: center; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    .routine { display: flex; align-items: center; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); flex-wrap: wrap; }
     .r-row1, .r-row2, .r-row3 { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; }
     .r-row1 { justify-content: space-between; }
     .rname { flex: 1 1 130px; font-size: 16px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; }
@@ -107,24 +113,26 @@
     .status.warn { color: var(--warn); }
     .status.ok { color: var(--accent-ink); }
 
-    .group { border-bottom: 1px solid var(--line); }
-    .group-head { display: flex; align-items: center; gap: 8px; padding: 15px 0; }
+    .group-head { display: flex; align-items: center; gap: 8px; padding: 12px 0; }
     .disc { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; }
-    .group-items { padding-left: 16px; border-left: 2px solid var(--line); margin: 0 0 14px 6px; }
-    .group-items .routine { border-bottom: 1px solid var(--line); }
+    .group-items { padding-left: 16px; border-left: 2px solid var(--line-soft); margin: 0 0 10px 6px; }
 
     .entry { display: flex; gap: 12px; font-size: 13px; color: var(--muted); padding: 5px 0; }
     .entry b { color: var(--ink); font-weight: 500; min-width: 52px; }
-    .hist { margin-top: 12px; }
+    .hist { margin-top: 10px; }
 
-    .add { display: flex; align-items: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .add { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
     .input { flex: 1 1 auto; font-size: 16px; font-family: inherit; color: var(--ink); background: transparent; border: none; border-bottom: 1px solid var(--line); padding: 8px 0; }
 
-    .foot { margin-top: 70px; font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 16px; color: var(--muted); text-align: center; }
-
-    .savings-top { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 8px; }
-    .jarwrap { position: relative; flex: 0 0 auto; }
-    .savetotal { flex: 1 1 auto; min-width: 130px; }
+    .coins-row { display: flex; gap: 26px; align-items: flex-end; margin-top: 10px; flex-wrap: wrap; }
+    .coin-stack { display: flex; flex-direction: column; align-items: center; }
+    .coin-pile { display: flex; flex-direction: column; }
+    .coin { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid; background: radial-gradient(circle, transparent 58%, currentColor 58% 61%, transparent 61%); }
+    .coin:not(:first-child) { margin-top: -23px; }
+    .coin-gold { border-color: var(--gold); color: var(--gold); }
+    .coin-silver { border-color: var(--silver); color: var(--silver); }
+    .coin-bronze { border-color: var(--bronze); color: var(--bronze); }
+    .coin-label { font-size: 12px; color: var(--muted); margin-top: 8px; white-space: nowrap; }
     .cdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid; vertical-align: middle; margin-right: 5px; }
 
     #importFile { display: none; }
@@ -158,6 +166,11 @@
     <div id="dueBanner"></div>
 
     <div id="sectionsContainer"></div>
+
+    <div class="row" style="justify-content:center;margin-top:36px;">
+      <button class="link" onclick="toggleDataPanel()">All data</button>
+    </div>
+    <div id="dataPanel"></div>
   </div>
 
   <script>
@@ -186,6 +199,7 @@
     function bedVal(bed) { const b = toMin(bed); if (b == null) return null; let h = b / 60; if (h < 12) h += 24; return h; }
 
     const leaf = (name, cad, aliases = []) => ({ id: uid(), name, mode: 'cadence', cadence: cad, nextDate: null, history: [], paused: false, aliases });
+    const TRASH_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
 
     const SECTION_TITLE = { body: 'Body', savings: 'Savings', movement: 'Movement', projects: 'Projects', routines: 'Routines' };
 
@@ -226,6 +240,15 @@
     let edit = false;
     let showGoals = false;
     let dueView = 'due';
+    let bodyView = 'list';
+    let sleepEditing = false;
+    let weightEditing = false;
+    let addingActivity = false;
+    let addingProject = false;
+    let addingRoutine = false;
+    let addingToGroup = {};
+    let dataPanelOpen = false;
+    let dataPanelSelected = new Set();
 
     // ---------------- Cloud sync (Supabase, no login) ----------------
     const SUPABASE_URL = 'https://qagmxlivtxpzpfvfozdk.supabase.co';
@@ -357,6 +380,7 @@
       el.innerHTML = html;
 
       renderDueBanner();
+      renderDataPanel();
     }
 
     function renderSection(key, idx, total) {
@@ -368,7 +392,19 @@
           <button class="arrow" ${idx === total - 1 ? 'disabled' : ''} onclick="moveSection(${idx},1)">↓</button>
         </span>`;
       } else if (key === 'movement') {
-        head += `<button class="editbtn${showGoals ? ' on' : ''}" onclick="toggleShowGoals()">Goal</button>`;
+        head += `<span class="head-controls">
+          <button class="editbtn${showGoals ? ' on' : ''}" onclick="toggleShowGoals()">Goal</button>
+          <button class="plus" onclick="toggleAddActivity()">${addingActivity ? '×' : '+'}</button>
+        </span>`;
+      } else if (key === 'body') {
+        head += `<button class="editbtn${bodyView === 'chart' ? ' on' : ''}" onclick="toggleBodyView()">Chart</button>`;
+      } else if (key === 'projects') {
+        head += `<button class="plus" onclick="toggleAddProject()">${addingProject ? '×' : '+'}</button>`;
+      } else if (key === 'routines') {
+        head += `<span class="head-controls">
+          <button class="link" onclick="addGroup()">+ group</button>
+          <button class="plus" onclick="toggleAddRoutine()">${addingRoutine ? '×' : '+'}</button>
+        </span>`;
       }
       head += `</div>`;
 
@@ -383,6 +419,11 @@
     }
     function updateSectionTitle(key, value) { data.sectionTitles[key] = value; saveData(); }
     function toggleShowGoals() { showGoals = !showGoals; render(); }
+    function toggleBodyView() { bodyView = bodyView === 'list' ? 'chart' : 'list'; render(); }
+    function toggleAddActivity() { addingActivity = !addingActivity; render(); }
+    function toggleAddProject() { addingProject = !addingProject; render(); }
+    function toggleAddRoutine() { addingRoutine = !addingRoutine; render(); }
+    function toggleAddToGroup(id) { addingToGroup[id] = !addingToGroup[id]; render(); }
     function moveSection(idx, dir) { data.sectionOrder = arrMove(data.sectionOrder, idx, dir); saveData(); }
 
     // ---------------- Body (Sleep / Weight) ----------------
@@ -407,23 +448,40 @@
       let html = `<div class="card${data.sleep.paused ? ' paused' : ''}">
         <div class="card-head">
           <span class="cname" style="border-bottom:none;">Sleep</span>
-          ${data.sleep.paused ? '<span class="badge-pause">paused</span>' : ''}
-          <button class="link" onclick="toggleSleepPause()">${data.sleep.paused ? 'resume' : 'pause'}</button>
+          ${data.sleep.paused
+            ? `<span class="badge-pause">paused</span><button class="link" onclick="toggleSleepPause()">resume</button>`
+            : `<button class="link" onclick="toggleSleepPause()">pause</button>`}
         </div>`;
       if (!data.sleep.paused) {
-        const dur = te && sleepDur(te.bed, te.wake);
-        if (te) {
-          html += `<div class="pace" style="margin-top:4px;">
-            last night: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}
+        if (bodyView === 'chart') {
+          html += renderSleepChart();
+        } else {
+          const dur = te && sleepDur(te.bed, te.wake);
+          if (te) {
+            html += `<div class="pace" style="margin-top:4px;">
+              last night: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}
+            </div>`;
+          }
+          if (!te || sleepEditing) {
+            html += `<div class="row">
+              <span style="font-size:12px;color:var(--muted);">to bed</span>
+              <input type="time" id="bedInput" value="${te ? te.bed : ''}" />
+              <span style="font-size:12px;color:var(--muted);">up at</span>
+              <input type="time" id="wakeInput" value="${te ? te.wake : ''}" />
+              <button class="mini" onclick="saveSleep()">save last night</button>
+            </div>`;
+          }
+          html += `<div class="row">
+            ${data.sleep.entries.length > 0 ? `<button class="link" onclick="toggleSleepHist()">${data.sleep.showHist ? 'hide record' : 'record'}</button>` : ''}
+            ${te ? `<button class="link" onclick="toggleSleepEdit()">${sleepEditing ? 'close' : 'Edit'}</button>` : ''}
           </div>`;
+          if (data.sleep.showHist) {
+            const recent = [...data.sleep.entries].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6);
+            html += `<div class="hist">`;
+            for (const e of recent) html += `<div class="entry"><b>${fmtShort(e.date)}</b><span>${e.bed || '—'} → ${e.wake || '—'}</span></div>`;
+            html += `</div>`;
+          }
         }
-        html += `<div class="row">
-          <span style="font-size:12px;color:var(--muted);">to bed</span>
-          <input type="time" id="bedInput" />
-          <span style="font-size:12px;color:var(--muted);">up at</span>
-          <input type="time" id="wakeInput" />
-          <button class="mini" onclick="saveSleep()">save last night</button>
-        </div>`;
       }
       html += `</div>`;
       return html;
@@ -434,9 +492,19 @@
       if (!bed && !wake) return;
       data.sleep.entries = data.sleep.entries.filter(e => e.date !== todayKey());
       data.sleep.entries.push({ date: todayKey(), bed: bed || '', wake: wake || '' });
+      sleepEditing = false;
       saveData();
     }
     function toggleSleepPause() { data.sleep.paused = !data.sleep.paused; saveData(); }
+    function toggleSleepEdit() { sleepEditing = !sleepEditing; render(); }
+    function toggleSleepHist() { data.sleep.showHist = !data.sleep.showHist; saveData(); }
+    function renderSleepChart() {
+      const entries = [...data.sleep.entries].filter(e => sleepDur(e.bed, e.wake) != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
+      if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
+      const points = entries.map(e => ({ label: fmtShort(e.date), value: round1(sleepDur(e.bed, e.wake)) }));
+      const avg = round1(points.reduce((s, p) => s + p.value, 0) / points.length);
+      return svgLineChart(points, { summary: `avg ${avg}h over ${points.length} night${points.length === 1 ? '' : 's'}` });
+    }
 
     function renderWeightCard() {
       const today = todayKey();
@@ -444,24 +512,41 @@
       let html = `<div class="card${data.weight.paused ? ' paused' : ''}">
         <div class="card-head">
           <span class="cname" style="border-bottom:none;flex:0 0 auto;">Weight</span>
-          ${!data.weight.paused ? `<input type="text" class="unit" id="weightUnit" value="${data.weight.unit}" onchange="updateWeightUnit(this.value)" />` : ''}
-          ${data.weight.paused ? '<span class="badge-pause">paused</span>' : ''}
+          ${!data.weight.paused && bodyView === 'list' ? `<input type="text" class="unit" id="weightUnit" value="${data.weight.unit}" onchange="updateWeightUnit(this.value)" />` : ''}
           <span style="flex:1;"></span>
-          <button class="link" onclick="toggleWeightPause()">${data.weight.paused ? 'resume' : 'pause'}</button>
+          ${data.weight.paused
+            ? `<span class="badge-pause">paused</span><button class="link" onclick="toggleWeightPause()">resume</button>`
+            : `<button class="link" onclick="toggleWeightPause()">pause</button>`}
         </div>`;
       if (!data.weight.paused) {
-        if (te) {
-          html += `<div class="pace" style="margin-top:4px;">
-            today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (${data.weight.unit})
+        if (bodyView === 'chart') {
+          html += renderWeightChart();
+        } else {
+          if (te) {
+            html += `<div class="pace" style="margin-top:4px;">
+              today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (${data.weight.unit})
+            </div>`;
+          }
+          if (!te || weightEditing) {
+            html += `<div class="row">
+              <span style="font-size:12px;color:var(--muted);">morning</span>
+              <input type="number" step="0.1" class="short" id="weightAm" value="${te && te.am != null ? te.am : ''}" />
+              <span style="font-size:12px;color:var(--muted);">evening</span>
+              <input type="number" step="0.1" class="short" id="weightPm" value="${te && te.pm != null ? te.pm : ''}" />
+              <button class="mini" onclick="saveWeight()">save today</button>
+            </div>`;
+          }
+          html += `<div class="row">
+            ${data.weight.entries.length > 0 ? `<button class="link" onclick="toggleWeightHist()">${data.weight.showHist ? 'hide record' : 'record'}</button>` : ''}
+            ${te ? `<button class="link" onclick="toggleWeightEdit()">${weightEditing ? 'close' : 'Edit'}</button>` : ''}
           </div>`;
+          if (data.weight.showHist) {
+            const recent = [...data.weight.entries].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6);
+            html += `<div class="hist">`;
+            for (const e of recent) html += `<div class="entry"><b>${fmtShort(e.date)}</b><span>${e.am ?? '—'} am · ${e.pm ?? '—'} pm</span></div>`;
+            html += `</div>`;
+          }
         }
-        html += `<div class="row">
-          <span style="font-size:12px;color:var(--muted);">morning</span>
-          <input type="number" step="0.1" class="short" id="weightAm" />
-          <span style="font-size:12px;color:var(--muted);">evening</span>
-          <input type="number" step="0.1" class="short" id="weightPm" />
-          <button class="mini" onclick="saveWeight()">save today</button>
-        </div>`;
       }
       html += `</div>`;
       return html;
@@ -473,9 +558,38 @@
       if (!am && !pm) return;
       data.weight.entries = data.weight.entries.filter(e => e.date !== todayKey());
       data.weight.entries.push({ date: todayKey(), am: am ? parseFloat(am) : null, pm: pm ? parseFloat(pm) : null });
+      weightEditing = false;
       saveData();
     }
     function toggleWeightPause() { data.weight.paused = !data.weight.paused; saveData(); }
+    function toggleWeightEdit() { weightEditing = !weightEditing; render(); }
+    function toggleWeightHist() { data.weight.showHist = !data.weight.showHist; saveData(); }
+    function renderWeightChart() {
+      const entries = [...data.weight.entries].filter(e => e.am != null || e.pm != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
+      if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
+      const points = entries.map(e => ({ label: fmtShort(e.date), value: e.am ?? e.pm }));
+      const diff = round1(points[points.length - 1].value - points[0].value);
+      return svgLineChart(points, { summary: `${diff >= 0 ? '+' : ''}${diff} ${data.weight.unit} over ${points.length} reading${points.length === 1 ? '' : 's'}` });
+    }
+    function svgLineChart(points, opts) {
+      opts = opts || {};
+      const w = 300, h = 110, padL = 8, padR = 8, padT = 10, padB = 20;
+      const vals = points.map(p => p.value);
+      const minV = Math.min(...vals), maxV = Math.max(...vals);
+      const span = (maxV - minV) || 1;
+      const innerW = w - padL - padR, innerH = h - padT - padB;
+      const stepX = points.length > 1 ? innerW / (points.length - 1) : 0;
+      const coords = points.map((p, i) => ({ x: padL + stepX * i, y: padT + innerH - ((p.value - minV) / span) * innerH }));
+      const path = coords.map((c, i) => (i === 0 ? 'M' : 'L') + c.x.toFixed(1) + ',' + c.y.toFixed(1)).join(' ');
+      const dots = coords.map(c => `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="2.5" fill="var(--accent)" />`).join('');
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" style="overflow:visible;margin-top:8px;">
+          <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="1.6" />
+          ${dots}
+          <text x="${padL}" y="${h - 4}" font-size="9" fill="var(--muted)">${points[0].label}</text>
+          <text x="${w - padR}" y="${h - 4}" font-size="9" fill="var(--muted)" text-anchor="end">${points[points.length - 1].label}</text>
+        </svg>
+        <div class="pace" style="margin-top:2px;">${opts.summary || ''}</div>`;
+    }
 
     // ---------------- Savings (coin jar) ----------------
     function coinSummary(c) {
@@ -484,6 +598,17 @@
       if (c.g) p.push(`${c.g}×gold`); if (c.s) p.push(`${c.s}×silver`); if (c.b) p.push(`${c.b}×bronze`);
       return p.join(' · ');
     }
+    function renderCoinStack(kind, count) {
+      if (count <= 0) return '';
+      const cap = 10;
+      const shown = Math.min(count, cap);
+      let coins = '';
+      for (let i = 0; i < shown; i++) coins += `<div class="coin coin-${kind}"></div>`;
+      return `<div class="coin-stack">
+        <div class="coin-pile">${coins}</div>
+        <div class="coin-label">${count}× ${kind}${count > cap ? ` (+${count - cap})` : ''}</div>
+      </div>`;
+    }
     function renderSavings() {
       const tx = data.savings.tx;
       const balance = tx.reduce((s, t) => s + (t.type === 'deposit' ? t.amount : -t.amount), 0);
@@ -491,39 +616,14 @@
       const silver = Math.floor(rem / 500), rem2 = rem - silver * 500;
       const bronze = Math.floor(rem2 / 100), loose = rem2 - bronze * 100;
 
-      const count = gold + silver + bronze, shown = Math.min(count, 54);
-      const innerX = 48, innerW = 104, jarBottom = 188, jarTop = 64, innerH = jarBottom - jarTop;
-      const cols = 4, gap = 4;
-      let d = (innerW - gap * (cols - 1)) / cols;
-      const rows = Math.max(1, Math.ceil(shown / cols));
-      const maxD = (innerH - gap * (rows - 1)) / rows;
-      if (maxD < d) d = Math.max(7, maxD);
-      const startX = innerX + (innerW - (cols * d + (cols - 1) * gap)) / 2;
-      let coinsSvg = '';
-      for (let i = 0; i < shown; i++) {
-        const row = Math.floor(i / cols), col = i % cols;
-        const kind = i < gold ? 'gold' : i < gold + silver ? 'silver' : 'bronze';
-        const col_ = kind === 'gold' ? 'var(--gold)' : kind === 'silver' ? 'var(--silver)' : 'var(--bronze)';
-        const cx = startX + col * (d + gap) + d / 2, cy = jarBottom - row * (d + gap) - d / 2, r = d / 2;
-        coinsSvg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col_}" stroke-width="1.4" />
-          <circle cx="${cx}" cy="${cy}" r="${r * 0.56}" fill="none" stroke="${col_}" stroke-width="0.9" />`;
-      }
-
       let html = `<div class="card">
-        <div class="savings-top">
-          <div class="jarwrap">
-            <svg viewBox="0 0 200 210" width="160" height="168" aria-label="Savings jar">
-              <path d="M40 64 L40 172 Q40 190 58 190 L142 190 Q160 190 160 172 L160 64 Z" fill="rgba(255,255,255,0.22)" stroke="var(--muted)" stroke-width="1.5" />
-              <path d="M34 48 Q34 42 41 42 L159 42 Q166 42 166 48 L166 52 Q166 58 159 58 L41 58 Q34 58 34 52 Z" fill="none" stroke="var(--muted)" stroke-width="1.5" />
-              <path d="M40 64 Q100 72 160 64" fill="none" stroke="var(--muted)" stroke-width="1" opacity="0.6" />
-              ${coinsSvg}
-            </svg>
-          </div>
-          <div class="savetotal">
-            <div class="figure" style="margin-top:0;font-size:28px;">$${balance.toLocaleString()}</div>
-            <div class="pace">${gold} gold · ${silver} silver · ${bronze} bronze${loose ? ` · $${loose} loose` : ''}${count > shown ? ` · showing ${shown}` : ''}</div>
-          </div>
+        <div class="figure" style="margin-top:0;font-size:28px;">$${balance.toLocaleString()}</div>
+        <div class="coins-row">
+          ${renderCoinStack('gold', gold)}
+          ${renderCoinStack('silver', silver)}
+          ${renderCoinStack('bronze', bronze)}
         </div>
+        ${loose ? `<div class="pace" style="margin-top:8px;">+$${loose} loose</div>` : ''}
         <div class="panel">
           <div class="field"><label>Coins</label>
             <span class="cdot" style="border-color:var(--gold);"></span><input type="number" min="0" placeholder="0" class="coin-in" id="coinG" />
@@ -592,7 +692,7 @@
               <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveActivity(${i},-1)">↑</button>
               <button class="arrow" ${i === data.activities.length - 1 ? 'disabled' : ''} onclick="moveActivity(${i},1)">↓</button>
             </span>
-            <button class="btn-x" onclick="removeActivity('${a.id}')">✕</button>
+            <button class="btn-x" onclick="removeActivity('${a.id}')">${TRASH_ICON}</button>
           </div>`).join('');
         return html;
       }
@@ -621,11 +721,12 @@
             <div class="pace">${rem <= 0 ? `Goal reached — <b>${round1(cur)} ${act.goalKind}</b>.` : `${round1(cur)} of ${act.target} ${act.goalKind} · about <b>${round1(pw)} a week</b> to reach it by ${fmtShort(act.deadline)}`}</div>`;
         }
         if (!act.paused) {
-          html += `<div class="row">
-            <input type="number" min="0" placeholder="min" class="short" id="actMin${act.id}" />
-            <button class="mini" onclick="logActivity('${act.id}')">Add</button>
-          </div>`;
-          if (showGoals) {
+          if (!showGoals) {
+            html += `<div class="row">
+              <input type="number" min="0" class="short" id="actMin${act.id}" /> min
+              <button class="mini" onclick="logActivity('${act.id}')">Add</button>
+            </div>`;
+          } else {
             html += `<div class="panel">
               <div class="field"><label>1 session</label><input type="number" min="0" class="short" value="${act.defaultMin ?? 30}" onchange="updateActivity('${act.id}', 'defaultMin', Number(this.value))" /><span style="font-size:12px;color:var(--muted);">min · used for "1次" &amp; bare logs</span></div>
               <div class="field"><label>Match</label><input type="text" style="flex:1 1 120px;" value="${(act.aliases || []).join(' ')}" placeholder="words the quick box should match" onchange="updateActivity('${act.id}', 'aliases', this.value.split(/[\\s,，、]+/).filter(Boolean))" /></div>
@@ -654,7 +755,9 @@
         }
         html += `</div>`;
       }
-      html += `<div class="add"><input type="text" class="input" id="actDraft" placeholder="add an activity…" onkeydown="if(event.key==='Enter') addActivity()" /></div>`;
+      if (addingActivity) {
+        html += `<div class="add"><input type="text" class="input" id="actDraft" placeholder="add an activity…" onkeydown="if(event.key==='Enter') addActivity()" /><button class="mini" onclick="addActivity()">Add</button></div>`;
+      }
       return html;
     }
     function renderMovementOverview(active) {
@@ -708,8 +811,8 @@
               <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveProject(${i},-1)">↑</button>
               <button class="arrow" ${i === data.projects.length - 1 ? 'disabled' : ''} onclick="moveProject(${i},1)">↓</button>
             </span>
-            <button class="btn-x" onclick="removeProject('${p.id}')">✕</button>
-          </div>`).join('') + `<div class="add"></div>`;
+            <button class="btn-x" onclick="removeProject('${p.id}')">${TRASH_ICON}</button>
+          </div>`).join('');
       }
       let html = '';
       for (const proj of data.projects) {
@@ -721,7 +824,9 @@
         html += `<div class="card${proj.paused ? ' paused' : ''}">
           <div class="card-head">
             <input type="text" class="cname" value="${proj.name}" onchange="updateProject('${proj.id}', 'name', this.value)" />
-            ${proj.paused ? '<span class="badge-pause">paused</span>' : ''}
+            ${proj.paused
+              ? `<span class="badge-pause">paused</span><button class="link" onclick="toggleProjectPause('${proj.id}')">resume</button>`
+              : `<button class="link" onclick="toggleProjectPause('${proj.id}')">pause</button>`}
           </div>`;
         if (!proj.paused) {
           html += `<div class="pips">`;
@@ -734,7 +839,7 @@
             <div class="bar" style="margin-top:10px;"><div class="bar-fill" style="width:${pct * 100}%;"></div></div>
             <div class="pace">${fmtMinutes(totalMin)} over ${proj.sessions.length} session${proj.sessions.length === 1 ? '' : 's'}</div>
             <div class="row">
-              <input type="number" min="0" placeholder="min" class="short" id="projMin${proj.id}" />
+              <input type="number" min="0" class="short" id="projMin${proj.id}" /> min
               <input type="text" placeholder="what you did (optional)" id="projNote${proj.id}" />
               <button class="mini" onclick="logProjectSession('${proj.id}')">Add</button>
             </div>
@@ -743,7 +848,6 @@
               ${current > 0 ? `<button class="link" onclick="setProjectStage('${proj.id}', ${current - 1})">← step back</button>` : ''}
               <button class="link" onclick="toggleProjectStages('${proj.id}')">${proj.showStages ? 'close' : 'edit stages'}</button>
               ${proj.sessions.length > 0 ? `<button class="link" onclick="toggleProjectHist('${proj.id}')">${proj.showHist ? 'hide record' : 'record'}</button>` : ''}
-              <button class="link" onclick="toggleProjectPause('${proj.id}')">pause</button>
             </div>`;
           if (proj.showStages) {
             html += `<div class="panel">`;
@@ -765,12 +869,12 @@
             for (const x of recent) html += `<div class="entry"><b>${fmtShort(x.date)}</b><span>${fmtMinutes(x.minutes)}${x.note ? ` · ${x.note}` : ''}</span></div>`;
             html += `</div>`;
           }
-        } else {
-          html += `<div class="row"><button class="link" onclick="toggleProjectPause('${proj.id}')">resume</button></div>`;
         }
         html += `</div>`;
       }
-      html += `<div class="add"><input type="text" class="input" id="projDraft" placeholder="add a project…" onkeydown="if(event.key==='Enter') addProject()" /></div>`;
+      if (addingProject) {
+        html += `<div class="add"><input type="text" class="input" id="projDraft" placeholder="add a project…" onkeydown="if(event.key==='Enter') addProject()" /><button class="mini" onclick="addProject()">Add</button></div>`;
+      }
       return html;
     }
     function moveProject(idx, dir) { data.projects = arrMove(data.projects, idx, dir); saveData(); }
@@ -839,7 +943,7 @@
                 <button class="arrow" ${i === 0 ? 'disabled' : ''} onclick="moveRoutine(${i},-1)">↑</button>
                 <button class="arrow" ${i === data.routines.length - 1 ? 'disabled' : ''} onclick="moveRoutine(${i},1)">↓</button>
               </span>
-              <button class="btn-x" onclick="removeRoutine('${e.id}')">✕</button>
+              <button class="btn-x" onclick="removeRoutine('${e.id}')">${TRASH_ICON}</button>
             </div>`;
             e.items.forEach((it, j) => {
               html += `<div class="outrow leaf">
@@ -853,7 +957,7 @@
                   ${groupList.map(g => `<option value="${g.id}" ${g.id===e.id?'selected':''}>${g.name}</option>`).join('')}
                   <option value="new">＋ new group</option>
                 </select>
-                <button class="btn-x" onclick="removeRoutine('${it.id}','${e.id}')">✕</button>
+                <button class="btn-x" onclick="removeRoutine('${it.id}','${e.id}')">${TRASH_ICON}</button>
               </div>`;
             });
           } else {
@@ -868,7 +972,7 @@
                 ${groupList.map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
                 <option value="new">＋ new group</option>
               </select>
-              <button class="btn-x" onclick="removeRoutine('${e.id}')">✕</button>
+              <button class="btn-x" onclick="removeRoutine('${e.id}')">${TRASH_ICON}</button>
             </div>`;
           }
         });
@@ -878,28 +982,32 @@
       for (const r of data.routines) {
         html += r.group ? renderRoutineGroup(r) : renderRoutineRow(r, false);
       }
-      html += `<div class="add">
-        <input type="text" class="input" id="routDraft" placeholder="add a routine…" onkeydown="if(event.key==='Enter') addRoutine()" />
-        <button class="mini" onclick="addRoutine()">add</button>
-        <button class="link" onclick="addGroup()">+ new group</button>
-      </div>`;
+      if (addingRoutine) {
+        html += `<div class="add">
+          <input type="text" class="input" id="routDraft" placeholder="add a routine…" onkeydown="if(event.key==='Enter') addRoutine()" />
+          <button class="mini" onclick="addRoutine()">Add</button>
+        </div>`;
+      }
       return html;
     }
     function renderRoutineGroup(group) {
+      const isAdding = !!addingToGroup[group.id];
       let html = `<div class="group">
-        <div class="group-head${group.paused ? '' : ''}">
+        <div class="group-head">
           <button class="disc" onclick="toggleGroupCollapse('${group.id}')">${group.collapsed ? '▸' : '▾'}</button>
           <input type="text" class="cname" value="${group.name}" onchange="updateGroup('${group.id}', 'name', this.value)" />
           ${group.paused ? '<span class="badge-pause">paused</span>' : `<span class="meta">${group.items.length} item${group.items.length===1?'':'s'}</span>`}
           <span style="flex:1;"></span>
+          ${!group.paused ? `<button class="plus" onclick="toggleAddToGroup('${group.id}')">${isAdding ? '×' : '+'}</button>` : ''}
           <button class="link" onclick="toggleGroupPause('${group.id}')">${group.paused ? 'resume' : 'pause'}</button>
         </div>`;
       if (!group.collapsed) {
         html += `<div class="group-items">`;
         for (const item of group.items) html += renderRoutineRow(item, group.paused, group.id);
-        if (!group.paused) {
+        if (isAdding && !group.paused) {
           html += `<div class="add" style="margin-top:8px;">
             <input type="text" class="input" id="groupItem${group.id}" placeholder="add to this group…" onkeydown="if(event.key==='Enter') addRoutineToGroup('${group.id}')" />
+            <button class="mini" onclick="addRoutineToGroup('${group.id}')">Add</button>
           </div>`;
         }
         html += `</div>`;
@@ -920,7 +1028,7 @@
       const gid = groupId ? `, '${groupId}'` : '';
       let html = `<div class="routine" style="${paused ? 'opacity:.5;' : ''}">
         <div class="r-row1">
-          <input type="text" class="rname" value="${routine.name}" onchange="updateRoutine('${routine.id}', 'name', this.value${gid})" />
+          <input type="text" class="${groupId ? 'rname' : 'cname'}" value="${routine.name}" onchange="updateRoutine('${routine.id}', 'name', this.value${gid})" />
           ${paused
             ? `<span class="badge-pause">paused</span>${!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${gid})">resume</button>` : ''}`
             : (!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${gid})">pause</button>` : '')}
@@ -1154,6 +1262,76 @@
     }
     function quickUndo() {
       if (lastUndo) { data = lastUndo; lastUndo = null; document.getElementById('quickFeedback').innerHTML = `<div class="qfb ok">Undone.</div>`; saveData(); }
+    }
+
+    // ---------------- All data (list + bulk delete) ----------------
+    function collectAllEntries() {
+      const rows = [];
+      data.sleep.entries.forEach(e => rows.push({ key: `sleep:${e.date}`, date: e.date, label: `Sleep — ${e.bed || '—'} → ${e.wake || '—'}` }));
+      data.weight.entries.forEach(e => rows.push({ key: `weight:${e.date}`, date: e.date, label: `Weight — ${e.am ?? '—'} am / ${e.pm ?? '—'} pm` }));
+      data.savings.tx.forEach(t => rows.push({ key: `savings:${t.id}`, date: t.date, label: `Savings — ${t.type === 'deposit' ? '+' : '−'}$${t.amount}${t.purpose ? ` · ${t.purpose}` : ''}` }));
+      data.activities.forEach(a => a.logs.forEach(l => rows.push({ key: `activity:${a.id}:${l.id}`, date: l.date, label: `${a.name} — ${l.minutes ? fmtMinutes(l.minutes) : 'logged'}` })));
+      data.projects.forEach(p => p.sessions.forEach(s => rows.push({ key: `project:${p.id}:${s.id}`, date: s.date, label: `${p.name} — ${fmtMinutes(s.minutes)}${s.note ? ` · ${s.note}` : ''}` })));
+      const walkRoutine = (r, groupName) => {
+        (r.history || []).forEach(d => rows.push({ key: `routine:${r.id}:${d}`, date: d, label: `${groupName ? groupName + ' · ' : ''}${r.name} — done` }));
+      };
+      data.routines.forEach(e => {
+        if (e.group) e.items.forEach(it => walkRoutine(it, e.name));
+        else walkRoutine(e, null);
+      });
+      rows.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+      return rows;
+    }
+    function deleteEntryByKey(key) {
+      const parts = key.split(':');
+      const kind = parts[0];
+      if (kind === 'sleep') { data.sleep.entries = data.sleep.entries.filter(e => e.date !== parts[1]); }
+      else if (kind === 'weight') { data.weight.entries = data.weight.entries.filter(e => e.date !== parts[1]); }
+      else if (kind === 'savings') { data.savings.tx = data.savings.tx.filter(t => t.id !== parts[1]); }
+      else if (kind === 'activity') { const a = data.activities.find(x => x.id === parts[1]); if (a) a.logs = a.logs.filter(l => l.id !== parts[2]); }
+      else if (kind === 'project') { const p = data.projects.find(x => x.id === parts[1]); if (p) p.sessions = p.sessions.filter(s => s.id !== parts[2]); }
+      else if (kind === 'routine') {
+        const rid = parts[1], date = parts[2];
+        let found = data.routines.find(e => !e.group && e.id === rid);
+        if (found) { found.history = found.history.filter(d => d !== date); }
+        else {
+          for (const g of data.routines) {
+            if (g.group) { const it = g.items.find(x => x.id === rid); if (it) { it.history = it.history.filter(d => d !== date); break; } }
+          }
+        }
+      }
+    }
+    function toggleDataPanel() { dataPanelOpen = !dataPanelOpen; if (!dataPanelOpen) dataPanelSelected.clear(); renderDataPanel(); }
+    function toggleDataRow(key) { if (dataPanelSelected.has(key)) dataPanelSelected.delete(key); else dataPanelSelected.add(key); renderDataPanel(); }
+    function deleteSelectedData() {
+      if (dataPanelSelected.size === 0) return;
+      if (!confirm(`Delete ${dataPanelSelected.size} entr${dataPanelSelected.size === 1 ? 'y' : 'ies'}? This can't be undone.`)) return;
+      dataPanelSelected.forEach(k => deleteEntryByKey(k));
+      dataPanelSelected.clear();
+      saveData();
+    }
+    function renderDataPanel() {
+      const el = document.getElementById('dataPanel');
+      if (!dataPanelOpen) { el.innerHTML = ''; return; }
+      const rows = collectAllEntries();
+      let html = `<div class="due-banner" style="margin-top:12px;">
+        <div class="row" style="margin-top:0;justify-content:space-between;">
+          <span class="meta">${rows.length} entries</span>
+          <button class="link" onclick="deleteSelectedData()">Delete selected (${dataPanelSelected.size})</button>
+        </div>`;
+      if (rows.length === 0) {
+        html += `<div class="due-item">Nothing logged yet.</div>`;
+      } else {
+        for (const r of rows) {
+          html += `<label class="data-row">
+            <input type="checkbox" ${dataPanelSelected.has(r.key) ? 'checked' : ''} onchange="toggleDataRow('${r.key}')" />
+            <span class="data-date">${fmtShort(r.date)}</span>
+            <span class="data-label">${r.label}</span>
+          </label>`;
+        }
+      }
+      html += `</div>`;
+      el.innerHTML = html;
     }
 
     render();
