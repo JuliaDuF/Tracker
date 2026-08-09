@@ -1421,17 +1421,83 @@
       if ((m = low.match(/(\d+)\s*(次|回|times?|x)/))) count = parseInt(m[1], 10);
       return { minutes, count };
     }
+    function currentTimeStr() {
+      const d = new Date();
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+    function extractClockTime(low) {
+      let m;
+      if ((m = low.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/))) {
+        let h = parseInt(m[1], 10), min = parseInt(m[2], 10);
+        if (m[3] === 'pm' && h < 12) h += 12;
+        if (m[3] === 'am' && h === 12) h = 0;
+        return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+      }
+      if ((m = low.match(/(\d{1,2})[点點](\d{1,2})?分?/))) {
+        let h = parseInt(m[1], 10), min = m[2] ? parseInt(m[2], 10) : 0;
+        if (/晚上|下午|傍晚|pm/.test(low) && h < 12) h += 12;
+        return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+      }
+      if ((m = low.match(/(\d{1,2})\s*(am|pm)/))) {
+        let h = parseInt(m[1], 10);
+        if (m[2] === 'pm' && h < 12) h += 12;
+        if (m[2] === 'am' && h === 12) h = 0;
+        return `${String(h).padStart(2, '0')}:00`;
+      }
+      return null;
+    }
     let lastUndo = null;
     function handleQuick() {
       const input = document.getElementById('quickInput');
       const raw = (input.value || '').trim();
       if (!raw) return;
       const low = raw.toLowerCase();
+      const fbEl = document.getElementById('quickFeedback');
+
+      // Sleep: wake / bed time, explicit or "just now"
+      const wakeWords = /起床|起了|醒了|wake|woke|got up|up at/;
+      const bedWords = /睡觉|睡了|上床|入睡|to bed|went to bed|bedtime/;
+      if (!data.sleep.paused && (wakeWords.test(low) || bedWords.test(low))) {
+        const t = extractClockTime(low) || currentTimeStr();
+        const today = todayKey();
+        lastUndo = JSON.parse(JSON.stringify(data));
+        let e = data.sleep.entries.find(x => x.date === today);
+        if (!e) { e = { date: today, bed: '', wake: '', bedDay: 'yesterday', wakeDay: 'today' }; data.sleep.entries.push(e); }
+        let msg;
+        if (wakeWords.test(low)) { e.wake = t; if (!e.wakeDay) e.wakeDay = 'today'; msg = `Logged wake time ${t}.`; }
+        else { e.bed = t; if (!e.bedDay) e.bedDay = 'yesterday'; msg = `Logged bedtime ${t}.`; }
+        fbEl.innerHTML = `<div class="qfb ok">${msg} · <button class="link" onclick="quickUndo()">Undo</button></div>`;
+        input.value = '';
+        saveData();
+        return;
+      }
+
+      // Weight: a number near a weight keyword
+      const weightWords = /体重|體重|weight/;
+      if (!data.weight.paused && weightWords.test(low)) {
+        const m = low.match(/(\d{1,3}(?:\.\d{1,2})?)/);
+        if (m) {
+          const val = parseFloat(m[1]);
+          const today = todayKey();
+          lastUndo = JSON.parse(JSON.stringify(data));
+          let e = data.weight.entries.find(x => x.date === today);
+          if (!e) { e = { date: today, am: null, pm: null }; data.weight.entries.push(e); }
+          const isPM = /晚上|傍晚|下午|evening|pm|night/.test(low);
+          const isAM = /早上|早晨|清晨|morning|am/.test(low);
+          const usePM = isPM || (!isAM && new Date().getHours() >= 12);
+          if (usePM) e.pm = val; else e.am = val;
+          const msg = `Logged weight ${val} kg (${usePM ? 'evening' : 'morning'}).`;
+          fbEl.innerHTML = `<div class="qfb ok">${msg} · <button class="link" onclick="quickUndo()">Undo</button></div>`;
+          input.value = '';
+          saveData();
+          return;
+        }
+      }
+
       let best = null, bestLen = 0;
       collectTargets().forEach(t => t.keys.forEach(k => {
         if (k) { const kk = k.toLowerCase(); if (low.includes(kk) && kk.length > bestLen) { best = t; bestLen = kk.length; } }
       }));
-      const fbEl = document.getElementById('quickFeedback');
       if (!best) { fbEl.innerHTML = `<div class="qfb err">No match for "${raw}". Try an activity or routine name.</div>`; return; }
       const { minutes, count } = extractQty(low);
       lastUndo = JSON.parse(JSON.stringify(data));
