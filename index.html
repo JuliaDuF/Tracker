@@ -310,15 +310,11 @@
     let calMonth = new Date().getMonth();
     let calYear = new Date().getFullYear();
     let sleepEditing = false;
-    let sleepDataEditing = false;
-    let sleepAdding = false;
+    let sleepViewDate = null;
     let sleepShowRecord = false;
-    let sleepRecordEditDate = null;
     let weightEditing = false;
-    let weightDataEditing = false;
-    let weightAdding = false;
+    let weightViewDate = null;
     let weightShowRecord = false;
-    let weightRecordEditDate = null;
     let editingFrequency = {};
     let dataPanelOpen = false;
     let dataPanelSelected = new Set();
@@ -525,11 +521,16 @@
 
     function tomorrowKey() { const d = new Date(); d.setDate(d.getDate() + 1); return dateKey(d); }
     function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return dateKey(d); }
+    function getSleepViewDate() { return sleepViewDate || effectiveDateKey(DAY_CUTOFF_HOUR); }
+    function setSleepViewDate(value) {
+      if (!value) return;
+      setTimeout(() => { sleepViewDate = value; render(); }, 50);
+    }
+    function resetSleepViewDate() { sleepViewDate = null; sleepShowRecord = false; render(); }
     function renderSleepCard() {
-      const today = effectiveDateKey(DAY_CUTOFF_HOUR);
-      const tomorrow = addDaysToKey(today, 1);
-      const te = data.sleep.entries.find(e => e.date === today);
-      const complete = !!(te && te.bed && te.wake);
+      const viewDate = getSleepViewDate();
+      const isToday = viewDate === effectiveDateKey(DAY_CUTOFF_HOUR);
+      const te = data.sleep.entries.find(e => e.date === viewDate);
       const draft = editDrafts['sleep'];
       let html = `<div class="card${data.sleep.paused ? ' paused' : ''}">
         <div class="card-head">
@@ -552,24 +553,16 @@
         html += renderSleepChart();
       } else if (!data.sleep.paused) {
         const dur = te && sleepDurEntry(te);
-        if (te) {
-          html += `<div class="pace" style="margin-top:4px;">
-            Last night: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}
-          </div>`;
-        }
-        if (!complete) {
-          html += renderSleepForm(today, 'sleepMain', te, 'yesterday', 'today', null);
-        } else {
-          html += `<div class="row">
-            <button class="link" onclick="toggleSleepDataEdit()">${sleepDataEditing ? 'Close' : 'Edit'}</button>
-            <button class="link" onclick="toggleSleepAdd()">${sleepAdding ? 'Close' : 'Add'}</button>
-          </div>`;
-          if (sleepDataEditing) html += renderSleepForm(today, 'sleepEdit', te, 'yesterday', 'today', 'edit');
-          if (sleepAdding) {
-            const te2 = data.sleep.entries.find(e => e.date === tomorrow);
-            html += renderSleepForm(tomorrow, 'sleepAdd', te2, 'today', 'tomorrow', 'add');
-          }
-        }
+        const label = isToday ? 'Last night' : fmtShort(viewDate);
+        html += `<div class="pace" style="margin-top:4px;">
+          ${te ? `${label}: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}` : `${label}: nothing logged yet.`}
+        </div>
+        <div class="row">
+          <span style="font-size:12px;color:var(--muted);">Editing</span>
+          <input type="date" class="timeinput" value="${viewDate}" onchange="setSleepViewDate(this.value)" />
+          ${!isToday ? `<button class="link" onclick="resetSleepViewDate()">Today</button>` : ''}
+        </div>`;
+        html += renderSleepForm(viewDate, te);
         if (data.sleep.entries.length > 0) {
           html += `<div class="row"><button class="link" onclick="toggleSleepRecord()">${sleepShowRecord ? 'Hide record' : 'Record'}</button></div>`;
           if (sleepShowRecord) html += renderSleepRecord();
@@ -582,50 +575,43 @@
       const recent = [...data.sleep.entries].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 10);
       let html = `<div class="hist">`;
       for (const e of recent) {
-        if (sleepRecordEditDate === e.date) {
-          html += `<div style="padding:8px 0;">${renderSleepForm(e.date, 'sleepRec', e, 'yesterday', 'today', 'record')}</div>`;
-        } else {
-          html += `<div class="entry"><b>${fmtShort(e.date)}</b><span>${e.bed || '—'} → ${e.wake || '—'}</span>
-            <button class="link" style="margin-left:auto;" onclick="openSleepRecordEdit('${e.date}')">Edit</button>
-            <button class="link" onclick="clearSleepEntry('${e.date}')">Clear</button></div>`;
-        }
+        html += `<div class="entry"><b>${fmtShort(e.date)}</b><span>${e.bed || '—'} → ${e.wake || '—'}</span>
+          <button class="link" style="margin-left:auto;" onclick="jumpSleepToDate('${e.date}')">Edit</button>
+          <button class="link" onclick="clearSleepEntry('${e.date}')">Clear</button></div>`;
       }
       html += `</div>`;
       return html;
     }
-    function toggleSleepRecord() { sleepShowRecord = !sleepShowRecord; sleepRecordEditDate = null; render(); }
-    function openSleepRecordEdit(dateStr) { sleepRecordEditDate = dateStr; render(); }
+    function jumpSleepToDate(dateStr) { sleepViewDate = dateStr; sleepShowRecord = false; render(); }
+    function toggleSleepRecord() { sleepShowRecord = !sleepShowRecord; render(); }
     function clearSleepEntry(dateStr) {
       if (!confirm('Clear this night\'s sleep entry?')) return;
       data.sleep.entries = data.sleep.entries.filter(e => e.date !== dateStr);
       saveData();
     }
-    function renderSleepForm(dateStr, prefix, te, bedDayDefault, wakeDayDefault, closeWhich) {
-      const bedDay = te ? (te.bedDay || bedDayDefault) : bedDayDefault;
-      const wakeDay = te ? (te.wakeDay || wakeDayDefault) : wakeDayDefault;
+    function renderSleepForm(dateStr, te) {
+      const bedDay = te ? (te.bedDay || 'yesterday') : 'yesterday';
+      const wakeDay = te ? (te.wakeDay || 'today') : 'today';
       return `<div class="row">
         <span style="font-size:12px;color:var(--muted);">To bed</span>
-        <input type="time" class="timeinput" id="${prefix}Bed" value="${te ? te.bed : ''}" />
-        <select class="dayselect" id="${prefix}BedDay"><option value="yesterday" ${bedDay==='yesterday'?'selected':''}>Yesterday</option><option value="today" ${bedDay==='today'?'selected':''}>Today</option></select>
+        <input type="time" class="timeinput" id="sleepBedInput" value="${te ? te.bed : ''}" />
+        <select class="dayselect" id="sleepBedDaySel"><option value="yesterday" ${bedDay==='yesterday'?'selected':''}>Yesterday</option><option value="today" ${bedDay==='today'?'selected':''}>Today</option></select>
       </div>
       <div class="row">
         <span style="font-size:12px;color:var(--muted);">Up at</span>
-        <input type="time" class="timeinput" id="${prefix}Wake" value="${te ? te.wake : ''}" />
-        <select class="dayselect" id="${prefix}WakeDay"><option value="today" ${wakeDay==='today'?'selected':''}>Today</option><option value="tomorrow" ${wakeDay==='tomorrow'?'selected':''}>Tomorrow</option><option value="yesterday" ${wakeDay==='yesterday'?'selected':''}>Yesterday</option></select>
-        <button class="mini" onclick="saveSleepEntry('${dateStr}','${prefix}',${closeWhich ? `'${closeWhich}'` : 'null'})">Save</button>
+        <input type="time" class="timeinput" id="sleepWakeInput" value="${te ? te.wake : ''}" />
+        <select class="dayselect" id="sleepWakeDaySel"><option value="today" ${wakeDay==='today'?'selected':''}>Today</option><option value="tomorrow" ${wakeDay==='tomorrow'?'selected':''}>Tomorrow</option><option value="yesterday" ${wakeDay==='yesterday'?'selected':''}>Yesterday</option></select>
+        <button class="mini" onclick="saveSleepEntry('${dateStr}')">Save</button>
       </div>`;
     }
-    function saveSleepEntry(dateStr, prefix, which) {
-      const bed = document.getElementById(prefix + 'Bed').value;
-      const wake = document.getElementById(prefix + 'Wake').value;
-      const bedDay = document.getElementById(prefix + 'BedDay').value;
-      const wakeDay = document.getElementById(prefix + 'WakeDay').value;
+    function saveSleepEntry(dateStr) {
+      const bed = document.getElementById('sleepBedInput').value;
+      const wake = document.getElementById('sleepWakeInput').value;
+      const bedDay = document.getElementById('sleepBedDaySel').value;
+      const wakeDay = document.getElementById('sleepWakeDaySel').value;
       if (!bed && !wake) return;
       data.sleep.entries = data.sleep.entries.filter(e => e.date !== dateStr);
       data.sleep.entries.push({ date: dateStr, bed: bed || '', wake: wake || '', bedDay, wakeDay });
-      if (which === 'edit') sleepDataEditing = false;
-      if (which === 'add') sleepAdding = false;
-      if (which === 'record') sleepRecordEditDate = null;
       saveData();
     }
     function toggleSleepPause() { data.sleep.paused = !data.sleep.paused; saveData(); }
@@ -643,8 +629,6 @@
       saveData();
     }
     function cancelSleepEdit() { delete editDrafts['sleep']; sleepEditing = false; render(); }
-    function toggleSleepDataEdit() { sleepDataEditing = !sleepDataEditing; render(); }
-    function toggleSleepAdd() { sleepAdding = !sleepAdding; render(); }
     function renderSleepChart() {
       const entries = [...data.sleep.entries].filter(e => e.bed || e.wake).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
       if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
@@ -658,11 +642,16 @@
       ], { summary: avg != null ? `Avg ${avg}h over ${durs.length} night${durs.length === 1 ? '' : 's'}` : '' });
     }
 
+    function getWeightViewDate() { return weightViewDate || effectiveDateKey(DAY_CUTOFF_HOUR); }
+    function setWeightViewDate(value) {
+      if (!value) return;
+      setTimeout(() => { weightViewDate = value; render(); }, 50);
+    }
+    function resetWeightViewDate() { weightViewDate = null; weightShowRecord = false; render(); }
     function renderWeightCard() {
-      const today = effectiveDateKey(DAY_CUTOFF_HOUR);
-      const yesterday = addDaysToKey(today, -1);
-      const te = data.weight.entries.find(e => e.date === today);
-      const complete = !!(te && te.pm != null);
+      const viewDate = getWeightViewDate();
+      const isToday = viewDate === effectiveDateKey(DAY_CUTOFF_HOUR);
+      const te = data.weight.entries.find(e => e.date === viewDate);
       const draft = editDrafts['weight'];
       let html = `<div class="card${data.weight.paused ? ' paused' : ''}">
         <div class="card-head">
@@ -683,24 +672,16 @@
       if (bodyView === 'chart' && !data.weight.paused) {
         html += renderWeightChart();
       } else if (!data.weight.paused) {
-        if (te) {
-          html += `<div class="pace" style="margin-top:4px;">
-            Today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (kg)
-          </div>`;
-        }
-        if (!complete) {
-          html += renderWeightForm(today, 'weightMain', te, null);
-        } else {
-          html += `<div class="row">
-            <button class="link" onclick="toggleWeightDataEdit()">${weightDataEditing ? 'Close' : 'Edit'}</button>
-            <button class="link" onclick="toggleWeightAdd()">${weightAdding ? 'Close' : 'Add'}</button>
-          </div>`;
-          if (weightDataEditing) html += renderWeightForm(today, 'weightEdit', te, 'edit');
-          if (weightAdding) {
-            const te2 = data.weight.entries.find(e => e.date === yesterday);
-            html += renderWeightForm(yesterday, 'weightAdd', te2, 'add');
-          }
-        }
+        const label = isToday ? 'Today' : fmtShort(viewDate);
+        html += `<div class="pace" style="margin-top:4px;">
+          ${te ? `${label}: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (kg)` : `${label}: nothing logged yet.`}
+        </div>
+        <div class="row">
+          <span style="font-size:12px;color:var(--muted);">Editing</span>
+          <input type="date" class="timeinput" value="${viewDate}" onchange="setWeightViewDate(this.value)" />
+          ${!isToday ? `<button class="link" onclick="resetWeightViewDate()">Today</button>` : ''}
+        </div>`;
+        html += renderWeightForm(viewDate, te);
         if (data.weight.entries.length > 0) {
           html += `<div class="row"><button class="link" onclick="toggleWeightRecord()">${weightShowRecord ? 'Hide record' : 'Record'}</button></div>`;
           if (weightShowRecord) html += renderWeightRecord();
@@ -713,42 +694,35 @@
       const recent = [...data.weight.entries].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 10);
       let html = `<div class="hist">`;
       for (const e of recent) {
-        if (weightRecordEditDate === e.date) {
-          html += `<div style="padding:8px 0;">${renderWeightForm(e.date, 'weightRec', e, 'record')}</div>`;
-        } else {
-          html += `<div class="entry"><b>${fmtShort(e.date)}</b><span>${e.am ?? '—'} am · ${e.pm ?? '—'} pm</span>
-            <button class="link" style="margin-left:auto;" onclick="openWeightRecordEdit('${e.date}')">Edit</button>
-            <button class="link" onclick="clearWeightEntry('${e.date}')">Clear</button></div>`;
-        }
+        html += `<div class="entry"><b>${fmtShort(e.date)}</b><span>${e.am ?? '—'} am · ${e.pm ?? '—'} pm</span>
+          <button class="link" style="margin-left:auto;" onclick="jumpWeightToDate('${e.date}')">Edit</button>
+          <button class="link" onclick="clearWeightEntry('${e.date}')">Clear</button></div>`;
       }
       html += `</div>`;
       return html;
     }
-    function toggleWeightRecord() { weightShowRecord = !weightShowRecord; weightRecordEditDate = null; render(); }
-    function openWeightRecordEdit(dateStr) { weightRecordEditDate = dateStr; render(); }
+    function jumpWeightToDate(dateStr) { weightViewDate = dateStr; weightShowRecord = false; render(); }
+    function toggleWeightRecord() { weightShowRecord = !weightShowRecord; render(); }
     function clearWeightEntry(dateStr) {
       if (!confirm('Clear this day\'s weight entry?')) return;
       data.weight.entries = data.weight.entries.filter(e => e.date !== dateStr);
       saveData();
     }
-    function renderWeightForm(dateStr, prefix, te, closeWhich) {
+    function renderWeightForm(dateStr, te) {
       return `<div class="row">
         <span style="font-size:12px;color:var(--muted);">Morning</span>
-        <input type="number" step="0.1" class="short" id="${prefix}Am" value="${te && te.am != null ? te.am : ''}" />
+        <input type="number" step="0.1" class="short" id="weightAmInput" value="${te && te.am != null ? te.am : ''}" />
         <span style="font-size:12px;color:var(--muted);">Evening</span>
-        <input type="number" step="0.1" class="short" id="${prefix}Pm" value="${te && te.pm != null ? te.pm : ''}" />
-        <button class="mini" onclick="saveWeightEntry('${dateStr}','${prefix}',${closeWhich ? `'${closeWhich}'` : 'null'})">Save</button>
+        <input type="number" step="0.1" class="short" id="weightPmInput" value="${te && te.pm != null ? te.pm : ''}" />
+        <button class="mini" onclick="saveWeightEntry('${dateStr}')">Save</button>
       </div>`;
     }
-    function saveWeightEntry(dateStr, prefix, which) {
-      const am = document.getElementById(prefix + 'Am').value;
-      const pm = document.getElementById(prefix + 'Pm').value;
+    function saveWeightEntry(dateStr) {
+      const am = document.getElementById('weightAmInput').value;
+      const pm = document.getElementById('weightPmInput').value;
       if (!am && !pm) return;
       data.weight.entries = data.weight.entries.filter(e => e.date !== dateStr);
       data.weight.entries.push({ date: dateStr, am: am ? parseFloat(am) : null, pm: pm ? parseFloat(pm) : null });
-      if (which === 'edit') weightDataEditing = false;
-      if (which === 'add') weightAdding = false;
-      if (which === 'record') weightRecordEditDate = null;
       saveData();
     }
     function toggleWeightPause() { data.weight.paused = !data.weight.paused; saveData(); }
@@ -766,8 +740,6 @@
       saveData();
     }
     function cancelWeightEdit() { delete editDrafts['weight']; weightEditing = false; render(); }
-    function toggleWeightDataEdit() { weightDataEditing = !weightDataEditing; render(); }
-    function toggleWeightAdd() { weightAdding = !weightAdding; render(); }
     function renderWeightChart() {
       const entries = [...data.weight.entries].filter(e => e.am != null || e.pm != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
       if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
@@ -1368,6 +1340,9 @@
       const sch = ensureSchedule(r);
       const last = r.history.length ? r.history.reduce((a, d) => (d > a ? d : a), r.history[0]) : null;
       if (sch.type === 'date') return sch.onDate || null;
+      // A future "Start from" acts as a floor: never show a due date earlier
+      // than it, until a real completion moves the calculation past it.
+      const applyFloor = (dateStr) => (sch.floorDate && dateStr < sch.floorDate) ? sch.floorDate : dateStr;
       if (sch.type === 'interval') {
         if (last) {
           const d = parseDate(last);
@@ -1376,9 +1351,9 @@
           else if (sch.intervalUnit === 'weeks') d.setDate(d.getDate() + 7 * n);
           else if (sch.intervalUnit === 'months') d.setMonth(d.getMonth() + n);
           else if (sch.intervalUnit === 'years') d.setFullYear(d.getFullYear() + n);
-          return dateKey(d);
+          return applyFloor(dateKey(d));
         }
-        return todayKey();
+        return applyFloor(todayKey());
       }
       // weekdays / monthdays / yearly: scan forward from the day AFTER the last
       // completion (or from today if never done) and return the first matching
@@ -1389,20 +1364,20 @@
       else { d = new Date(); d.setHours(0, 0, 0, 0); }
       if (sch.type === 'weekdays') {
         const days = (sch.weekdays && sch.weekdays.length) ? sch.weekdays : [1];
-        for (let i = 0; i < 400; i++) { if (days.includes(d.getDay())) return dateKey(d); d.setDate(d.getDate() + 1); }
-        return dateKey(d);
+        for (let i = 0; i < 400; i++) { if (days.includes(d.getDay())) return applyFloor(dateKey(d)); d.setDate(d.getDate() + 1); }
+        return applyFloor(dateKey(d));
       }
       if (sch.type === 'monthdays') {
         const days = (sch.monthdays && sch.monthdays.length) ? sch.monthdays : [1];
-        for (let i = 0; i < 400; i++) { if (days.includes(d.getDate())) return dateKey(d); d.setDate(d.getDate() + 1); }
-        return dateKey(d);
+        for (let i = 0; i < 400; i++) { if (days.includes(d.getDate())) return applyFloor(dateKey(d)); d.setDate(d.getDate() + 1); }
+        return applyFloor(dateKey(d));
       }
       if (sch.type === 'yearly') {
         const month = sch.yearMonth || 1, day = sch.yearDay || 1;
-        for (let i = 0; i < 800; i++) { if (d.getMonth() + 1 === month && d.getDate() === day) return dateKey(d); d.setDate(d.getDate() + 1); }
-        return dateKey(d);
+        for (let i = 0; i < 800; i++) { if (d.getMonth() + 1 === month && d.getDate() === day) return applyFloor(dateKey(d)); d.setDate(d.getDate() + 1); }
+        return applyFloor(dateKey(d));
       }
-      return todayKey();
+      return applyFloor(todayKey());
     }
     function scheduleSummary(sch) {
       if (sch.type === 'date') return sch.onDate ? `On ${fmtShort(sch.onDate)}` : 'No date set';
@@ -1633,9 +1608,10 @@
     function openRoutineEdit(id, groupId) {
       const r = findRoutineRef(id, groupId);
       if (!r) return;
-      ensureSchedule(r);
+      const sch = ensureSchedule(r);
       const lastDone = r.history.length ? r.history.reduce((a, d) => (d > a ? d : a), r.history[0]) : '';
-      editDrafts['routine:' + id] = { name: r.name, paused: r.paused, schedule: JSON.parse(JSON.stringify(r.schedule)), startFrom: lastDone };
+      const startFrom = sch.floorDate || lastDone || '';
+      editDrafts['routine:' + id] = { name: r.name, paused: r.paused, schedule: JSON.parse(JSON.stringify(r.schedule)), startFrom };
       editingFrequency[id] = true;
       render();
     }
@@ -1647,7 +1623,17 @@
         r.name = d.name;
         r.paused = d.paused;
         r.schedule = d.schedule;
-        if (d.startFrom && !r.history.includes(d.startFrom)) r.history.push(d.startFrom);
+        if (d.startFrom) {
+          if (d.startFrom > todayKey()) {
+            // future date: don't count it as done — just floor the next due
+            // date so it can't land earlier than this, until a real
+            // completion moves the calculation past it.
+            r.schedule.floorDate = d.startFrom;
+          } else {
+            delete r.schedule.floorDate;
+            if (!r.history.includes(d.startFrom)) r.history.push(d.startFrom);
+          }
+        }
       }
       delete editDrafts['routine:' + id];
       editingFrequency[id] = false;
