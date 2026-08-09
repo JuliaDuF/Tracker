@@ -17,13 +17,18 @@
     .wrap { max-width: 680px; margin: 0 auto; padding: 48px 26px 90px; }
     .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .eyebrow { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
-    .title { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 40px; line-height: 1.04; margin: 14px 0 0; }
+    .title { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 40px; line-height: 1.04; margin: 14px 0 28px; }
     .note { font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 16px; color: var(--muted); margin: 16px 0 24px; line-height: 1.5; }
 
     .editbtn { font-family: inherit; font-size: 13px; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid transparent; border-radius: 20px; padding: 8px 16px; cursor: pointer; white-space: nowrap; }
     .editbtn.on { background: var(--accent); color: #fff; }
-    .plus { font-family: inherit; font-size: 16px; line-height: 1; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-soft); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .plus { font-family: inherit; font-size: 13px; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid transparent; border-radius: 20px; padding: 8px 13px; cursor: pointer; line-height: 1; }
     .head-controls { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(42,43,38,0.35); z-index: 50; align-items: center; justify-content: center; padding: 20px; }
+    .modal-box { background: var(--paper); border-radius: 16px; padding: 22px; max-width: 420px; width: 100%; max-height: 85vh; overflow-y: auto; }
+    .modal-box h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 19px; margin-bottom: 14px; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
 
     .quick { margin: 18px 0; }
     .quickbox { display: flex; gap: 10px; align-items: center; }
@@ -142,10 +147,10 @@
   <div class="wrap">
     <header>
       <div class="topbar">
-        <div class="eyebrow">2026 · your own pace</div>
+        <div class="eyebrow" id="todayLabel"></div>
         <button class="editbtn" id="editBtn" onclick="toggleEdit()">Edit</button>
       </div>
-      <h1 class="title">The second half</h1>
+      <h1 class="title">Personal Tracker</h1>
     </header>
 
     <div class="backup-buttons">
@@ -157,7 +162,7 @@
 
     <div class="quick" id="quickWrap">
       <div class="quickbox">
-        <input type="text" class="qinput" id="quickInput" placeholder='say it plainly — "瑜伽 20分钟", "骑马1次", "浇完花了"' onkeydown="if(event.key==='Enter') handleQuick()" />
+        <input type="text" class="qinput" id="quickInput" placeholder="say it plainly" onkeydown="if(event.key==='Enter') handleQuick()" />
         <button class="mini" onclick="handleQuick()">Add</button>
       </div>
       <div id="quickFeedback"></div>
@@ -173,6 +178,10 @@
     <div id="dataPanel"></div>
   </div>
 
+  <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal-box" id="modalBox"></div>
+  </div>
+
   <script>
     const uid = () => Math.random().toString(36).slice(2, 9);
     const DAY = 86400000;
@@ -182,6 +191,21 @@
       return `${y}-${m}-${day}`;
     }
     const todayKey = () => dateKey(new Date());
+    function setTodayLabel() {
+      const el = document.getElementById('todayLabel');
+      if (!el) return;
+      const d = new Date();
+      const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+      const monthDay = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      el.textContent = `${weekday} · ${monthDay}, ${d.getFullYear()}`;
+    }
+    function openModal(html) {
+      document.getElementById('modalBox').innerHTML = html;
+      document.getElementById('modalOverlay').style.display = 'flex';
+    }
+    function closeModal() {
+      document.getElementById('modalOverlay').style.display = 'none';
+    }
     function parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
     function daysUntil(dateStr) { const t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((parseDate(dateStr) - t) / DAY); }
     function fmtShort(s) { try { return parseDate(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch (e) { return s; } }
@@ -243,10 +267,7 @@
     let bodyView = 'list';
     let sleepEditing = false;
     let weightEditing = false;
-    let addingActivity = false;
-    let addingProject = false;
-    let addingRoutine = false;
-    let addingToGroup = {};
+    let editingFrequency = {};
     let dataPanelOpen = false;
     let dataPanelSelected = new Set();
 
@@ -394,16 +415,16 @@
       } else if (key === 'movement') {
         head += `<span class="head-controls">
           <button class="editbtn${showGoals ? ' on' : ''}" onclick="toggleShowGoals()">Goal</button>
-          <button class="plus" onclick="toggleAddActivity()">${addingActivity ? '×' : '+'}</button>
+          <button class="plus" onclick="openAddActivityModal()">+</button>
         </span>`;
       } else if (key === 'body') {
         head += `<button class="editbtn${bodyView === 'chart' ? ' on' : ''}" onclick="toggleBodyView()">Chart</button>`;
       } else if (key === 'projects') {
-        head += `<button class="plus" onclick="toggleAddProject()">${addingProject ? '×' : '+'}</button>`;
+        head += `<button class="plus" onclick="openAddProjectModal()">+</button>`;
       } else if (key === 'routines') {
         head += `<span class="head-controls">
           <button class="link" onclick="addGroup()">+ group</button>
-          <button class="plus" onclick="toggleAddRoutine()">${addingRoutine ? '×' : '+'}</button>
+          <button class="plus" onclick="openAddRoutineModal()">+</button>
         </span>`;
       }
       head += `</div>`;
@@ -420,10 +441,6 @@
     function updateSectionTitle(key, value) { data.sectionTitles[key] = value; saveData(); }
     function toggleShowGoals() { showGoals = !showGoals; render(); }
     function toggleBodyView() { bodyView = bodyView === 'list' ? 'chart' : 'list'; render(); }
-    function toggleAddActivity() { addingActivity = !addingActivity; render(); }
-    function toggleAddProject() { addingProject = !addingProject; render(); }
-    function toggleAddRoutine() { addingRoutine = !addingRoutine; render(); }
-    function toggleAddToGroup(id) { addingToGroup[id] = !addingToGroup[id]; render(); }
     function moveSection(idx, dir) { data.sectionOrder = arrMove(data.sectionOrder, idx, dir); saveData(); }
 
     // ---------------- Body (Sleep / Weight) ----------------
@@ -468,18 +485,13 @@
               <input type="time" id="bedInput" value="${te ? te.bed : ''}" />
               <span style="font-size:12px;color:var(--muted);">up at</span>
               <input type="time" id="wakeInput" value="${te ? te.wake : ''}" />
-              <button class="mini" onclick="saveSleep()">save last night</button>
+              <button class="mini" onclick="saveSleep()">Save</button>
             </div>`;
           }
-          html += `<div class="row">
-            ${data.sleep.entries.length > 0 ? `<button class="link" onclick="toggleSleepHist()">${data.sleep.showHist ? 'hide record' : 'record'}</button>` : ''}
-            ${te ? `<button class="link" onclick="toggleSleepEdit()">${sleepEditing ? 'close' : 'Edit'}</button>` : ''}
-          </div>`;
-          if (data.sleep.showHist) {
-            const recent = [...data.sleep.entries].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6);
-            html += `<div class="hist">`;
-            for (const e of recent) html += `<div class="entry"><b>${fmtShort(e.date)}</b><span>${e.bed || '—'} → ${e.wake || '—'}</span></div>`;
-            html += `</div>`;
+          if (te) {
+            html += `<div class="row">
+              <button class="link" onclick="toggleSleepEdit()">${sleepEditing ? 'close' : 'Edit'}</button>
+            </div>`;
           }
         }
       }
@@ -497,7 +509,6 @@
     }
     function toggleSleepPause() { data.sleep.paused = !data.sleep.paused; saveData(); }
     function toggleSleepEdit() { sleepEditing = !sleepEditing; render(); }
-    function toggleSleepHist() { data.sleep.showHist = !data.sleep.showHist; saveData(); }
     function renderSleepChart() {
       const entries = [...data.sleep.entries].filter(e => sleepDur(e.bed, e.wake) != null).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-30);
       if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
@@ -511,9 +522,7 @@
       const te = data.weight.entries.find(e => e.date === today);
       let html = `<div class="card${data.weight.paused ? ' paused' : ''}">
         <div class="card-head">
-          <span class="cname" style="border-bottom:none;flex:0 0 auto;">Weight</span>
-          ${!data.weight.paused && bodyView === 'list' ? `<input type="text" class="unit" id="weightUnit" value="${data.weight.unit}" onchange="updateWeightUnit(this.value)" />` : ''}
-          <span style="flex:1;"></span>
+          <span class="cname" style="border-bottom:none;">Weight</span>
           ${data.weight.paused
             ? `<span class="badge-pause">paused</span><button class="link" onclick="toggleWeightPause()">resume</button>`
             : `<button class="link" onclick="toggleWeightPause()">pause</button>`}
@@ -524,7 +533,7 @@
         } else {
           if (te) {
             html += `<div class="pace" style="margin-top:4px;">
-              today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (${data.weight.unit})
+              today: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (kg)
             </div>`;
           }
           if (!te || weightEditing) {
@@ -533,25 +542,19 @@
               <input type="number" step="0.1" class="short" id="weightAm" value="${te && te.am != null ? te.am : ''}" />
               <span style="font-size:12px;color:var(--muted);">evening</span>
               <input type="number" step="0.1" class="short" id="weightPm" value="${te && te.pm != null ? te.pm : ''}" />
-              <button class="mini" onclick="saveWeight()">save today</button>
+              <button class="mini" onclick="saveWeight()">Save</button>
             </div>`;
           }
-          html += `<div class="row">
-            ${data.weight.entries.length > 0 ? `<button class="link" onclick="toggleWeightHist()">${data.weight.showHist ? 'hide record' : 'record'}</button>` : ''}
-            ${te ? `<button class="link" onclick="toggleWeightEdit()">${weightEditing ? 'close' : 'Edit'}</button>` : ''}
-          </div>`;
-          if (data.weight.showHist) {
-            const recent = [...data.weight.entries].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6);
-            html += `<div class="hist">`;
-            for (const e of recent) html += `<div class="entry"><b>${fmtShort(e.date)}</b><span>${e.am ?? '—'} am · ${e.pm ?? '—'} pm</span></div>`;
-            html += `</div>`;
+          if (te) {
+            html += `<div class="row">
+              <button class="link" onclick="toggleWeightEdit()">${weightEditing ? 'close' : 'Edit'}</button>
+            </div>`;
           }
         }
       }
       html += `</div>`;
       return html;
     }
-    function updateWeightUnit(v) { data.weight.unit = v; saveData(); }
     function saveWeight() {
       const am = document.getElementById('weightAm').value;
       const pm = document.getElementById('weightPm').value;
@@ -569,7 +572,7 @@
       if (entries.length === 0) return `<div class="pace" style="margin-top:8px;">Nothing logged yet.</div>`;
       const points = entries.map(e => ({ label: fmtShort(e.date), value: e.am ?? e.pm }));
       const diff = round1(points[points.length - 1].value - points[0].value);
-      return svgLineChart(points, { summary: `${diff >= 0 ? '+' : ''}${diff} ${data.weight.unit} over ${points.length} reading${points.length === 1 ? '' : 's'}` });
+      return svgLineChart(points, { summary: `${diff >= 0 ? '+' : ''}${diff} kg over ${points.length} reading${points.length === 1 ? '' : 's'}` });
     }
     function svgLineChart(points, opts) {
       opts = opts || {};
@@ -638,21 +641,6 @@
           </div>
         </div>
         <div id="savingsErr"></div>`;
-      if (tx.length > 0) {
-        html += `<div class="row"><button class="link" onclick="toggleSavingsHist()">${data.savings.showHist ? 'hide record' : 'record'}</button></div>`;
-      }
-      if (data.savings.showHist) {
-        const recent = [...tx].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 8);
-        html += `<div class="hist">`;
-        for (const t of recent) {
-          html += `<div class="entry">
-            <b>${fmtShort(t.date)}</b>
-            <span style="color:${t.type === 'deposit' ? 'var(--accent-ink)' : 'var(--warn)'};min-width:64px;">${t.type === 'deposit' ? '+' : '−'}$${t.amount.toLocaleString()}</span>
-            <span>${t.type === 'withdraw' ? t.purpose : (coinSummary(t.coins) || 'deposit')}</span>
-          </div>`;
-        }
-        html += `</div>`;
-      }
       html += `</div>`;
       return html;
     }
@@ -723,7 +711,7 @@
         if (!act.paused) {
           if (!showGoals) {
             html += `<div class="row">
-              <input type="number" min="0" class="short" id="actMin${act.id}" /> min
+              <input type="number" min="0" class="short" id="actMin${act.id}" /> <span style="font-size:12px;color:var(--muted);">min</span>
               <button class="mini" onclick="logActivity('${act.id}')">Add</button>
             </div>`;
           } else {
@@ -741,22 +729,8 @@
               <div class="field"><label>By</label><input type="date" value="${act.deadline}" onchange="updateActivity('${act.id}', 'deadline', this.value)" /></div>` : ''}
             </div>`;
           }
-          if (act.logs.length > 0) {
-            html += `<div class="row"><button class="link" onclick="toggleActivityHist('${act.id}')">${act.showHist ? 'hide record' : 'record'}</button></div>`;
-            if (act.showHist) {
-              const recent = [...act.logs].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6);
-              html += `<div class="hist">`;
-              for (const l of recent) {
-                html += `<div class="entry"><b>${fmtShort(l.date)}</b><span>${l.minutes ? fmtMinutes(l.minutes) : 'logged'}</span><button class="link" style="margin-left:auto;" onclick="removeActivityLog('${act.id}','${l.id}')">remove</button></div>`;
-              }
-              html += `</div>`;
-            }
-          }
         }
         html += `</div>`;
-      }
-      if (addingActivity) {
-        html += `<div class="add"><input type="text" class="input" id="actDraft" placeholder="add an activity…" onkeydown="if(event.key==='Enter') addActivity()" /><button class="mini" onclick="addActivity()">Add</button></div>`;
       }
       return html;
     }
@@ -783,7 +757,12 @@
     function setMovementBy(k) { window._movementBy = k; render(); }
     function moveActivity(idx, dir) { data.activities = arrMove(data.activities, idx, dir); saveData(); }
     function updateActivity(id, field, value) { const a = data.activities.find(x => x.id === id); if (a) { a[field] = value; saveData(); } }
-    function removeActivity(id) { data.activities = data.activities.filter(a => a.id !== id); saveData(); }
+    function removeActivity(id) {
+      const a = data.activities.find(x => x.id === id);
+      if (!confirm(`Delete "${a ? a.name : 'this activity'}"? This can't be undone.`)) return;
+      data.activities = data.activities.filter(x => x.id !== id);
+      saveData();
+    }
     function logActivity(id) {
       const mins = parseFloat(document.getElementById(`actMin${id}`).value);
       const a = data.activities.find(x => x.id === id);
@@ -793,13 +772,50 @@
     function toggleActivityHasGoal(id) { const a = data.activities.find(x => x.id === id); if (a) { a.hasGoal = !a.hasGoal; saveData(); } }
     function toggleActivityPause(id) { const a = data.activities.find(x => x.id === id); if (a) { a.paused = !a.paused; saveData(); } }
     function toggleActivityHist(id) { const a = data.activities.find(x => x.id === id); if (a) { a.showHist = !a.showHist; saveData(); } }
-    function addActivity() {
-      const input = document.getElementById('actDraft');
-      const name = input.value.trim();
+    function openAddActivityModal() {
+      openModal(`
+        <h3>Add an activity</h3>
+        <div class="panel" style="margin-top:0;">
+          <div class="field"><label>Name</label><input type="text" style="flex:1;" id="m_actName" /></div>
+          <div class="field"><label>1 session</label><input type="number" min="0" class="short" id="m_actDefaultMin" value="30" /><span style="font-size:12px;color:var(--muted);">min</span></div>
+          <div class="field"><label>Goal</label><button class="chip" id="m_actGoalChip" onclick="modalToggleActGoal()">off</button></div>
+          <div id="m_actGoalFields" style="display:none;flex-direction:column;gap:11px;">
+            <div class="field"><label>Reach</label><input type="number" min="0" class="short" id="m_actTarget" value="0" />
+              <select id="m_actGoalKind">
+                <option value="days">days</option>
+                <option value="hours">hours</option>
+                <option value="sessions">sessions</option>
+              </select></div>
+            <div class="field"><label>By</label><input type="date" id="m_actDeadline" value="2026-12-31" /></div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="mini" onclick="submitAddActivity()">Add</button>
+          <button class="link" onclick="closeModal()">Cancel</button>
+        </div>
+      `);
+    }
+    function modalToggleActGoal() {
+      const chip = document.getElementById('m_actGoalChip');
+      const fields = document.getElementById('m_actGoalFields');
+      const on = chip.textContent.trim() === 'off';
+      chip.textContent = on ? 'on' : 'off';
+      chip.classList.toggle('on', on);
+      fields.style.display = on ? 'flex' : 'none';
+    }
+    function submitAddActivity() {
+      const name = document.getElementById('m_actName').value.trim();
       if (!name) return;
-      data.activities.push({ id: uid(), name, hasGoal: false, goalKind: 'days', target: 0, deadline: '2026-12-31', defaultMin: 30, aliases: [], logs: [], paused: false });
+      const defaultMin = Number(document.getElementById('m_actDefaultMin').value) || 30;
+      const hasGoal = document.getElementById('m_actGoalChip').textContent.trim() === 'on';
+      const target = Number(document.getElementById('m_actTarget').value) || 0;
+      const goalKind = document.getElementById('m_actGoalKind').value;
+      const deadline = document.getElementById('m_actDeadline').value || '2026-12-31';
+      data.activities.push({ id: uid(), name, hasGoal, goalKind, target, deadline, defaultMin, aliases: [], logs: [], paused: false });
+      closeModal();
       saveData();
     }
+
 
     // ---------------- Projects ----------------
     function renderProjects() {
@@ -839,7 +855,7 @@
             <div class="bar" style="margin-top:10px;"><div class="bar-fill" style="width:${pct * 100}%;"></div></div>
             <div class="pace">${fmtMinutes(totalMin)} over ${proj.sessions.length} session${proj.sessions.length === 1 ? '' : 's'}</div>
             <div class="row">
-              <input type="number" min="0" class="short" id="projMin${proj.id}" /> min
+              <input type="number" min="0" class="short" id="projMin${proj.id}" /> <span style="font-size:12px;color:var(--muted);">min</span>
               <input type="text" placeholder="what you did (optional)" id="projNote${proj.id}" />
               <button class="mini" onclick="logProjectSession('${proj.id}')">Add</button>
             </div>
@@ -847,7 +863,6 @@
               ${!allDone && n > 0 ? `<button class="link" onclick="setProjectStage('${proj.id}', ${current + 1})">finish this stage →</button>` : ''}
               ${current > 0 ? `<button class="link" onclick="setProjectStage('${proj.id}', ${current - 1})">← step back</button>` : ''}
               <button class="link" onclick="toggleProjectStages('${proj.id}')">${proj.showStages ? 'close' : 'edit stages'}</button>
-              ${proj.sessions.length > 0 ? `<button class="link" onclick="toggleProjectHist('${proj.id}')">${proj.showHist ? 'hide record' : 'record'}</button>` : ''}
             </div>`;
           if (proj.showStages) {
             html += `<div class="panel">`;
@@ -863,23 +878,19 @@
             });
             html += `<div class="field"><input type="text" style="flex:1;" id="stageDraft${proj.id}" placeholder="add a stage…" onkeydown="if(event.key==='Enter') addProjectStage('${proj.id}')" /><button class="mini" onclick="addProjectStage('${proj.id}')">add</button></div></div>`;
           }
-          if (proj.showHist) {
-            const recent = [...proj.sessions].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6);
-            html += `<div class="hist">`;
-            for (const x of recent) html += `<div class="entry"><b>${fmtShort(x.date)}</b><span>${fmtMinutes(x.minutes)}${x.note ? ` · ${x.note}` : ''}</span></div>`;
-            html += `</div>`;
-          }
         }
         html += `</div>`;
-      }
-      if (addingProject) {
-        html += `<div class="add"><input type="text" class="input" id="projDraft" placeholder="add a project…" onkeydown="if(event.key==='Enter') addProject()" /><button class="mini" onclick="addProject()">Add</button></div>`;
       }
       return html;
     }
     function moveProject(idx, dir) { data.projects = arrMove(data.projects, idx, dir); saveData(); }
     function updateProject(id, field, value) { const p = data.projects.find(x => x.id === id); if (p) { p[field] = value; saveData(); } }
-    function removeProject(id) { data.projects = data.projects.filter(p => p.id !== id); saveData(); }
+    function removeProject(id) {
+      const p = data.projects.find(x => x.id === id);
+      if (!confirm(`Delete "${p ? p.name : 'this project'}"? This can't be undone.`)) return;
+      data.projects = data.projects.filter(x => x.id !== id);
+      saveData();
+    }
     function setProjectStage(id, stage) { const p = data.projects.find(x => x.id === id); if (p) { p.current = stage; saveData(); } }
     function logProjectSession(id) {
       const mins = parseFloat(document.getElementById(`projMin${id}`).value);
@@ -916,11 +927,23 @@
       const p = data.projects.find(x => x.id === id);
       if (p) { p.stages.splice(i, 1); p.current = Math.min(p.current, p.stages.length); saveData(); }
     }
-    function addProject() {
-      const input = document.getElementById('projDraft');
-      const name = input.value.trim();
+    function openAddProjectModal() {
+      openModal(`
+        <h3>Add a project</h3>
+        <div class="panel" style="margin-top:0;">
+          <div class="field"><label>Name</label><input type="text" style="flex:1;" id="m_projName" /></div>
+        </div>
+        <div class="modal-actions">
+          <button class="mini" onclick="submitAddProject()">Add</button>
+          <button class="link" onclick="closeModal()">Cancel</button>
+        </div>
+      `);
+    }
+    function submitAddProject() {
+      const name = document.getElementById('m_projName').value.trim();
       if (!name) return;
       data.projects.push({ id: uid(), name, stages: ['Start'], current: 0, sessions: [], aliases: [], paused: false });
+      closeModal();
       saveData();
     }
 
@@ -982,34 +1005,21 @@
       for (const r of data.routines) {
         html += r.group ? renderRoutineGroup(r) : renderRoutineRow(r, false);
       }
-      if (addingRoutine) {
-        html += `<div class="add">
-          <input type="text" class="input" id="routDraft" placeholder="add a routine…" onkeydown="if(event.key==='Enter') addRoutine()" />
-          <button class="mini" onclick="addRoutine()">Add</button>
-        </div>`;
-      }
       return html;
     }
     function renderRoutineGroup(group) {
-      const isAdding = !!addingToGroup[group.id];
       let html = `<div class="group">
         <div class="group-head">
           <button class="disc" onclick="toggleGroupCollapse('${group.id}')">${group.collapsed ? '▸' : '▾'}</button>
           <input type="text" class="cname" value="${group.name}" onchange="updateGroup('${group.id}', 'name', this.value)" />
           ${group.paused ? '<span class="badge-pause">paused</span>' : `<span class="meta">${group.items.length} item${group.items.length===1?'':'s'}</span>`}
           <span style="flex:1;"></span>
-          ${!group.paused ? `<button class="plus" onclick="toggleAddToGroup('${group.id}')">${isAdding ? '×' : '+'}</button>` : ''}
+          ${!group.paused ? `<button class="plus" onclick="openAddRoutineModal('${group.id}')">+</button>` : ''}
           <button class="link" onclick="toggleGroupPause('${group.id}')">${group.paused ? 'resume' : 'pause'}</button>
         </div>`;
       if (!group.collapsed) {
         html += `<div class="group-items">`;
         for (const item of group.items) html += renderRoutineRow(item, group.paused, group.id);
-        if (isAdding && !group.paused) {
-          html += `<div class="add" style="margin-top:8px;">
-            <input type="text" class="input" id="groupItem${group.id}" placeholder="add to this group…" onkeydown="if(event.key==='Enter') addRoutineToGroup('${group.id}')" />
-            <button class="mini" onclick="addRoutineToGroup('${group.id}')">Add</button>
-          </div>`;
-        }
         html += `</div>`;
       }
       html += `</div>`;
@@ -1026,30 +1036,33 @@
         else { status = `${on} · in ${d}d`; tone = 'ok'; }
       }
       const gid = groupId ? `, '${groupId}'` : '';
+      const editingFreq = !!editingFrequency[routine.id];
       let html = `<div class="routine" style="${paused ? 'opacity:.5;' : ''}">
         <div class="r-row1">
           <input type="text" class="${groupId ? 'rname' : 'cname'}" value="${routine.name}" onchange="updateRoutine('${routine.id}', 'name', this.value${gid})" />
           ${paused
             ? `<span class="badge-pause">paused</span>${!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${gid})">resume</button>` : ''}`
-            : (!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${gid})">pause</button>` : '')}
+            : `${!groupPaused ? `<button class="link" onclick="toggleRoutinePause('${routine.id}'${gid})">pause</button>` : ''}<button class="link" onclick="toggleEditFrequency('${routine.id}')">${editingFreq ? 'close' : 'Edit frequency'}</button>`}
         </div>`;
       if (!paused) {
-        html += `<div class="r-row2">
-          <select onchange="updateRoutine('${routine.id}', 'mode', this.value${gid})">
-            <option value="cadence" ${routine.mode === 'cadence' ? 'selected' : ''}>every…</option>
-            <option value="date" ${routine.mode === 'date' ? 'selected' : ''}>on a date</option>
-          </select>`;
-        if (routine.mode === 'cadence') {
-          html += `<select onchange="updateRoutine('${routine.id}', 'cadence', this.value${gid})">
-            <option value="weekly" ${routine.cadence === 'weekly' ? 'selected' : ''}>week</option>
-            <option value="monthly" ${routine.cadence === 'monthly' ? 'selected' : ''}>month</option>
-            <option value="yearly" ${routine.cadence === 'yearly' ? 'selected' : ''}>year</option>
-          </select>`;
-        } else {
-          html += `<input type="date" value="${routine.nextDate || ''}" onchange="updateRoutine('${routine.id}', 'nextDate', this.value${gid})" />`;
+        if (editingFreq) {
+          html += `<div class="r-row2">
+            <select onchange="updateRoutine('${routine.id}', 'mode', this.value${gid})">
+              <option value="cadence" ${routine.mode === 'cadence' ? 'selected' : ''}>every…</option>
+              <option value="date" ${routine.mode === 'date' ? 'selected' : ''}>on a date</option>
+            </select>`;
+          if (routine.mode === 'cadence') {
+            html += `<select onchange="updateRoutine('${routine.id}', 'cadence', this.value${gid})">
+              <option value="weekly" ${routine.cadence === 'weekly' ? 'selected' : ''}>week</option>
+              <option value="monthly" ${routine.cadence === 'monthly' ? 'selected' : ''}>month</option>
+              <option value="yearly" ${routine.cadence === 'yearly' ? 'selected' : ''}>year</option>
+            </select>`;
+          } else {
+            html += `<input type="date" value="${routine.nextDate || ''}" onchange="updateRoutine('${routine.id}', 'nextDate', this.value${gid})" />`;
+          }
+          html += `</div>`;
         }
-        html += `</div>
-        <div class="r-row3">
+        html += `<div class="r-row3">
           <span class="status ${tone}">${status}</span>
           <button class="mini" onclick="markRoutineDone('${routine.id}'${gid})">done</button>
         </div>`;
@@ -1057,6 +1070,7 @@
       html += `</div>`;
       return html;
     }
+    function toggleEditFrequency(id) { editingFrequency[id] = !editingFrequency[id]; render(); }
     function moveRoutine(idx, dir) { data.routines = arrMove(data.routines, idx, dir); saveData(); }
     function moveRoutineItem(groupId, idx, dir) {
       const g = data.routines.find(e => e.id === groupId && e.group);
@@ -1096,6 +1110,16 @@
       }
     }
     function removeRoutine(id, groupId) {
+      let name = 'this';
+      if (groupId) {
+        const g = data.routines.find(e => e.id === groupId);
+        const it = g && g.items.find(x => x.id === id);
+        if (it) name = it.name;
+      } else {
+        const e = data.routines.find(x => x.id === id);
+        if (e) name = e.name;
+      }
+      if (!confirm(`Delete "${name}"? This can't be undone.`)) return;
       if (groupId) {
         const g = data.routines.find(e => e.id === groupId);
         if (g) { g.items = g.items.filter(it => it.id !== id); saveData(); }
@@ -1119,19 +1143,64 @@
     function toggleGroupCollapse(id) { const g = data.routines.find(e => e.id === id && e.group); if (g) { g.collapsed = !g.collapsed; saveData(); } }
     function toggleGroupPause(id) { const g = data.routines.find(e => e.id === id && e.group); if (g) { g.paused = !g.paused; saveData(); } }
     function updateGroup(id, field, value) { const g = data.routines.find(e => e.id === id && e.group); if (g) { g[field] = value; saveData(); } }
-    function addRoutineToGroup(groupId) {
-      const input = document.getElementById(`groupItem${groupId}`);
-      const name = input.value.trim();
-      if (!name) return;
+    function addRoutineToGroup(groupId, name, mode, cadence, dateVal) {
       const g = data.routines.find(e => e.id === groupId && e.group);
-      if (g) { g.items.push(leaf(name, 'weekly')); saveData(); }
-    }
-    function addRoutine() {
-      const input = document.getElementById('routDraft');
-      const name = input.value.trim();
-      if (!name) return;
-      data.routines.push(leaf(name, 'weekly'));
+      if (!g) return;
+      const r = leaf(name, cadence);
+      r.mode = mode;
+      if (mode === 'date') r.nextDate = dateVal || null;
+      g.items.push(r);
       saveData();
+    }
+    function openAddRoutineModal(groupId) {
+      openModal(`
+        <h3>Add a routine</h3>
+        <div class="panel" style="margin-top:0;">
+          <div class="field"><label>Name</label><input type="text" style="flex:1;" id="m_routName" /></div>
+          <div class="field"><label>Repeats</label>
+            <select id="m_routMode" onchange="modalRoutineModeChange()">
+              <option value="cadence">every…</option>
+              <option value="date">on a date</option>
+            </select>
+          </div>
+          <div class="field" id="m_routCadenceField">
+            <select id="m_routCadence">
+              <option value="weekly">week</option>
+              <option value="monthly">month</option>
+              <option value="yearly">year</option>
+            </select>
+          </div>
+          <div class="field" id="m_routDateField" style="display:none;">
+            <input type="date" id="m_routDate" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="mini" onclick="submitAddRoutine('${groupId || ''}')">Add</button>
+          <button class="link" onclick="closeModal()">Cancel</button>
+        </div>
+      `);
+    }
+    function modalRoutineModeChange() {
+      const mode = document.getElementById('m_routMode').value;
+      document.getElementById('m_routCadenceField').style.display = mode === 'cadence' ? 'flex' : 'none';
+      document.getElementById('m_routDateField').style.display = mode === 'date' ? 'flex' : 'none';
+    }
+    function submitAddRoutine(groupId) {
+      const name = document.getElementById('m_routName').value.trim();
+      if (!name) return;
+      const mode = document.getElementById('m_routMode').value;
+      const cadence = document.getElementById('m_routCadence').value;
+      const dateVal = document.getElementById('m_routDate').value;
+      if (groupId) {
+        addRoutineToGroup(groupId, name, mode, cadence, dateVal);
+      } else {
+        const r = leaf(name, cadence);
+        r.mode = mode;
+        if (mode === 'date') r.nextDate = dateVal || null;
+        data.routines.push(r);
+        saveData();
+      }
+      closeModal();
     }
     function addGroup() {
       data.routines.push({ id: uid(), name: 'New group', group: true, collapsed: false, paused: false, items: [] });
@@ -1334,6 +1403,7 @@
       el.innerHTML = html;
     }
 
+    setTodayLabel();
     render();
     supaLoad();
   </script>
