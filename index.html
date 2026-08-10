@@ -522,7 +522,16 @@
 
     function tomorrowKey() { const d = new Date(); d.setDate(d.getDate() + 1); return dateKey(d); }
     function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return dateKey(d); }
-    function getSleepViewDate() { return sleepViewDate || effectiveDateKey(DAY_CUTOFF_HOUR); }
+    function getSleepViewDate() {
+      if (sleepViewDate) return sleepViewDate;
+      // Auto-track: point at the oldest not-yet-complete night, or the day
+      // after the last completed one — driven entirely by whether "up at"
+      // has been filled in, never by what time it is right now.
+      if (data.sleep.entries.length === 0) return todayKey();
+      const latest = [...data.sleep.entries].sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+      const isComplete = !!(latest.bed && latest.wake);
+      return isComplete ? addDaysToKey(latest.date, 1) : latest.date;
+    }
     function setSleepViewDate(value) {
       if (!value) return;
       setTimeout(() => { sleepViewDate = value; render(); }, 50);
@@ -530,7 +539,8 @@
     function resetSleepViewDate() { sleepViewDate = null; sleepShowRecord = false; render(); }
     function renderSleepCard() {
       const viewDate = getSleepViewDate();
-      const isToday = viewDate === effectiveDateKey(DAY_CUTOFF_HOUR);
+      const isAutoTracking = !sleepViewDate;
+      const isCalendarToday = viewDate === todayKey();
       const te = data.sleep.entries.find(e => e.date === viewDate);
       const draft = editDrafts['sleep'];
       let html = `<div class="card${data.sleep.paused ? ' paused' : ''}">
@@ -554,14 +564,14 @@
         html += renderSleepChart();
       } else if (!data.sleep.paused) {
         const dur = te && sleepDurEntry(te);
-        const label = isToday ? 'Last night' : fmtShort(viewDate);
+        const label = isCalendarToday ? 'Last night' : fmtShort(viewDate);
         html += `<div class="pace" style="margin-top:4px;">
           ${te ? `${label}: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}` : `${label}: nothing logged yet.`}
         </div>
         <div class="row">
           <span style="font-size:12px;color:var(--muted);">Editing</span>
           <input type="date" class="editdate" value="${viewDate}" onchange="setSleepViewDate(this.value)" />
-          ${!isToday ? `<button class="link" onclick="resetSleepViewDate()">Today</button>` : ''}
+          ${!isAutoTracking ? `<button class="link" onclick="resetSleepViewDate()">Today</button>` : ''}
         </div>`;
         html += renderSleepForm(viewDate, te);
         if (data.sleep.entries.length > 0) {
