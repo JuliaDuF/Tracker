@@ -11,6 +11,7 @@
       --paper: #E7E7E0; --surface: #F1F1EB; --ink: #2A2B26; --muted: #83857A; --line: #D4D4CA;
       --line-soft: rgba(42,43,38,0.10);
       --accent: #6F7F73; --accent-ink: #55634F; --accent-soft: rgba(111,127,115,0.13); --warn: #A8735B;
+      --ink-warm: #6E6459;
       --gold: #B9985E; --silver: #9AA6B0; --bronze: #A9744F;
     }
     body { background: var(--paper); color: var(--ink); font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; }
@@ -38,7 +39,7 @@
     .qinput::placeholder { color: var(--muted); }
     .qinput:focus { outline: none; border-color: var(--accent); }
     .qfb { font-size: 13px; margin-top: 9px; }
-    .qfb.ok { color: var(--accent-ink); }
+    .qfb.ok { color: var(--ink-warm); }
     .qfb.err { color: var(--warn); }
 
     .due-banner { margin: 18px 0; padding: 15px 17px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: 13px; }
@@ -53,7 +54,7 @@
     .btn-backup { font-family: inherit; font-size: 12px; padding: 6px 11px; border-radius: 8px; border: none; background: var(--accent-soft); color: var(--accent-ink); cursor: pointer; }
 
     .section { margin-top: 40px; }
-    .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line-soft); padding-bottom: 10px; margin-bottom: 8px; }
+    .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line-soft); padding-bottom: 10px; margin-bottom: 8px; cursor: pointer; }
     .h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 22px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; flex: 1 1 auto; min-width: 0; }
     .h2:focus { outline: none; border-bottom-color: var(--accent); }
     .meta { font-size: 12px; color: var(--muted); }
@@ -68,7 +69,7 @@
 
     .outrow { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
     .outname { flex: 1 1 auto; font-size: 15px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .outrow.grp .outname { color: var(--accent-ink); font-weight: 500; }
+    .outrow.grp .outname { color: var(--ink-warm); font-weight: 500; }
     .outrow.leaf { padding-left: 22px; }
 
     .card { padding: 18px 0; border-bottom: 1px solid var(--line-soft); }
@@ -84,7 +85,7 @@
     .bar { height: 6px; background: var(--line-soft); border-radius: 6px; overflow: hidden; margin: 10px 0; }
     .bar-fill { height: 100%; background: var(--accent); border-radius: 6px; }
     .pace { font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 15px; color: var(--muted); line-height: 1.45; }
-    .pace b { color: var(--accent-ink); font-weight: 400; font-style: normal; }
+    .pace b { color: var(--ink-warm); font-weight: 400; font-style: normal; }
 
     .chips { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 0 6px; }
     .chip { font-family: inherit; font-size: 12px; padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
@@ -122,7 +123,7 @@
     .rname { flex: 1 1 130px; font-size: 16px; color: var(--ink); background: none; border: none; border-bottom: 1px solid transparent; padding: 2px 0; }
     .status { font-size: 13px; color: var(--muted); white-space: nowrap; }
     .status.warn { color: var(--warn); }
-    .status.ok { color: var(--accent-ink); }
+    .status.ok { color: var(--ink-warm); }
 
     .group-head { display: flex; align-items: center; gap: 8px; padding: 12px 0; }
     .disc { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; }
@@ -458,27 +459,27 @@
     function renderSection(key, idx, total) {
       const title = data.sectionTitles[key] || SECTION_TITLE[key] || key;
       const collapsed = isCollapsed(key);
-      let head = `<div class="sec-head${edit ? ' edit' : ''}">
-        <button class="disc" onclick="toggleSectionCollapse('${key}')">${collapsed ? '▸' : '▾'}</button>
+      let head = `<div class="sec-head${edit ? ' edit' : ''}" onclick="toggleSectionCollapse('${key}')">
+        <button class="disc">${collapsed ? '▸' : '▾'}</button>
         ${edit
-          ? `<input type="text" class="h2" value="${title}" onchange="updateSectionTitle('${key}', this.value)" />`
+          ? `<input type="text" class="h2" value="${title}" onclick="event.stopPropagation()" onchange="updateSectionTitle('${key}', this.value)" />`
           : `<span class="h2" style="border-bottom:none;">${title}</span>`}`;
       if (edit) {
-        head += `<span class="arrows">
+        head += `<span class="arrows" onclick="event.stopPropagation()">
           <button class="arrow" ${idx === 0 ? 'disabled' : ''} onclick="moveSection(${idx},-1)">↑</button>
           <button class="arrow" ${idx === total - 1 ? 'disabled' : ''} onclick="moveSection(${idx},1)">↓</button>
         </span>`;
       } else if (!collapsed && key === 'movement') {
-        head += `<span class="head-controls">
+        head += `<span class="head-controls" onclick="event.stopPropagation()">
           <button class="editbtn${movementView === 'bars' ? ' on' : ''}" onclick="toggleMovementView()">Bars</button>
           <button class="plus" onclick="openAddActivityModal()">+</button>
         </span>`;
       } else if (!collapsed && key === 'body') {
-        head += `<button class="editbtn${bodyView === 'chart' ? ' on' : ''}" onclick="toggleBodyView()">Chart</button>`;
+        head += `<button class="editbtn${bodyView === 'chart' ? ' on' : ''}" onclick="event.stopPropagation(); toggleBodyView()">Chart</button>`;
       } else if (!collapsed && key === 'projects') {
-        head += `<button class="plus" onclick="openAddProjectModal()">+</button>`;
+        head += `<button class="plus" onclick="event.stopPropagation(); openAddProjectModal()">+</button>`;
       } else if (!collapsed && key === 'routines') {
-        head += `<button class="plus" onclick="openAddRoutineModal()">+</button>`;
+        head += `<button class="plus" onclick="event.stopPropagation(); openAddRoutineModal()">+</button>`;
       }
       head += `</div>`;
 
@@ -601,26 +602,26 @@
       saveData();
     }
     function renderSleepForm(dateStr, te) {
-      const bedDay = te ? (te.bedDay || 'yesterday') : 'yesterday';
-      const wakeDay = te ? (te.wakeDay || 'today') : 'today';
       return `<div class="row">
         <span style="font-size:12px;color:var(--muted);">To bed</span>
         <input type="time" class="timeinput" id="sleepBedInput" value="${te ? te.bed : ''}" />
-        <select class="dayselect" id="sleepBedDaySel"><option value="yesterday" ${bedDay==='yesterday'?'selected':''}>Yesterday</option><option value="today" ${bedDay==='today'?'selected':''}>Today</option></select>
       </div>
       <div class="row">
         <span style="font-size:12px;color:var(--muted);">Up at</span>
         <input type="time" class="timeinput" id="sleepWakeInput" value="${te ? te.wake : ''}" />
-        <select class="dayselect" id="sleepWakeDaySel"><option value="today" ${wakeDay==='today'?'selected':''}>Today</option><option value="tomorrow" ${wakeDay==='tomorrow'?'selected':''}>Tomorrow</option><option value="yesterday" ${wakeDay==='yesterday'?'selected':''}>Yesterday</option></select>
         <button class="mini" onclick="saveSleepEntry('${dateStr}')">Save</button>
       </div>`;
     }
     function saveSleepEntry(dateStr) {
       const bed = document.getElementById('sleepBedInput').value;
       const wake = document.getElementById('sleepWakeInput').value;
-      const bedDay = document.getElementById('sleepBedDaySel').value;
-      const wakeDay = document.getElementById('sleepWakeDaySel').value;
       if (!bed && !wake) return;
+      // Infer which calendar day bedtime belongs to from the clock time
+      // itself: past midnight but before noon reads as "still last night,
+      // just very late" (today, same date as this entry); noon or later
+      // reads as a normal evening bedtime (yesterday, the night before).
+      const bedDay = bed && toMin(bed) < 12 * 60 ? 'today' : 'yesterday';
+      const wakeDay = 'today';
       data.sleep.entries = data.sleep.entries.filter(e => e.date !== dateStr);
       data.sleep.entries.push({ date: dateStr, bed: bed || '', wake: wake || '', bedDay, wakeDay });
       saveData();
@@ -1469,8 +1470,6 @@
       if (d === 1) return `Tomorrow · ${monthDay}`;
       if (d === -1) return `Yesterday · ${monthDay}`;
       const weekday = parseDate(dateStr).toLocaleDateString('en-US', { weekday: 'long' });
-      if (d > 1 && d <= 7) return `This ${weekday} · ${monthDay}`;
-      if (d > 7 && d <= 14) return `Next ${weekday} · ${monthDay}`;
       return `${weekday} · ${monthDay}`;
     }
     function scheduleEditorHtml(sch, idArg) {
@@ -1611,7 +1610,7 @@
         html += `<div class="r-row3">
           <span class="status ${tone}">${statusText}</span>
           ${doneToday
-            ? `<span style="font-size:13px;color:var(--accent-ink);">Done ✓</span><button class="link" onclick="unmarkRoutineDone('${routine.id}',${gidArg})">Undo</button>`
+            ? `<span style="font-size:13px;color:var(--ink-warm);">Done ✓</span><button class="link" onclick="unmarkRoutineDone('${routine.id}',${gidArg})">Undo</button>`
             : (urgent
                 ? `<button class="mini" onclick="markRoutineDone('${routine.id}',${gidArg})">Mark as complete</button>`
                 : `<button class="link" onclick="markRoutineDone('${routine.id}',${gidArg})">Mark as complete</button>`)}
@@ -2176,8 +2175,8 @@
       const el = document.getElementById('m_dataFields');
       if (type === 'sleep') {
         el.innerHTML = `
-          <div class="field"><label>To bed</label><input type="time" class="timeinput" id="m_dataBed" /><select class="dayselect" id="m_dataBedDay"><option value="yesterday" selected>Yesterday</option><option value="today">Today</option></select></div>
-          <div class="field"><label>Up at</label><input type="time" class="timeinput" id="m_dataWake" /><select class="dayselect" id="m_dataWakeDay"><option value="today" selected>Today</option><option value="yesterday">Yesterday</option></select></div>`;
+          <div class="field"><label>To bed</label><input type="time" class="timeinput" id="m_dataBed" /></div>
+          <div class="field"><label>Up at</label><input type="time" class="timeinput" id="m_dataWake" /></div>`;
       } else if (type === 'weight') {
         el.innerHTML = `
           <div class="field"><label>Morning</label><input type="number" step="0.1" class="short" id="m_dataAm" /></div>
@@ -2224,9 +2223,9 @@
       if (type === 'sleep') {
         const bed = document.getElementById('m_dataBed').value;
         const wake = document.getElementById('m_dataWake').value;
-        const bedDay = document.getElementById('m_dataBedDay').value;
-        const wakeDay = document.getElementById('m_dataWakeDay').value;
         if (!bed && !wake) { closeModal(); return; }
+        const bedDay = bed && toMin(bed) < 12 * 60 ? 'today' : 'yesterday';
+        const wakeDay = 'today';
         data.sleep.entries = data.sleep.entries.filter(e => e.date !== dateStr);
         data.sleep.entries.push({ date: dateStr, bed, wake, bedDay, wakeDay });
       } else if (type === 'weight') {
