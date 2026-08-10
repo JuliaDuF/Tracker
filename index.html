@@ -101,6 +101,7 @@
     input.coin-in { width: 52px; }
     input.unit { width: 46px; text-align: center; }
     input.timeinput { width: 100px; }
+    input.editdate { width: 160px; }
     select { -webkit-appearance: none; appearance: none; }
     select.dayselect { width: auto; min-width: 88px; font-size: 14px; padding: 7px 8px; }
     .cname:focus, .rname:focus { outline: none; border-bottom-color: var(--accent); }
@@ -559,7 +560,7 @@
         </div>
         <div class="row">
           <span style="font-size:12px;color:var(--muted);">Editing</span>
-          <input type="date" class="timeinput" value="${viewDate}" onchange="setSleepViewDate(this.value)" />
+          <input type="date" class="editdate" value="${viewDate}" onchange="setSleepViewDate(this.value)" />
           ${!isToday ? `<button class="link" onclick="resetSleepViewDate()">Today</button>` : ''}
         </div>`;
         html += renderSleepForm(viewDate, te);
@@ -678,7 +679,7 @@
         </div>
         <div class="row">
           <span style="font-size:12px;color:var(--muted);">Editing</span>
-          <input type="date" class="timeinput" value="${viewDate}" onchange="setWeightViewDate(this.value)" />
+          <input type="date" class="editdate" value="${viewDate}" onchange="setWeightViewDate(this.value)" />
           ${!isToday ? `<button class="link" onclick="resetWeightViewDate()">Today</button>` : ''}
         </div>`;
         html += renderWeightForm(viewDate, te);
@@ -1340,9 +1341,6 @@
       const sch = ensureSchedule(r);
       const last = r.history.length ? r.history.reduce((a, d) => (d > a ? d : a), r.history[0]) : null;
       if (sch.type === 'date') return sch.onDate || null;
-      // A future "Start from" acts as a floor: never show a due date earlier
-      // than it, until a real completion moves the calculation past it.
-      const applyFloor = (dateStr) => (sch.floorDate && dateStr < sch.floorDate) ? sch.floorDate : dateStr;
       if (sch.type === 'interval') {
         if (last) {
           const d = parseDate(last);
@@ -1351,33 +1349,36 @@
           else if (sch.intervalUnit === 'weeks') d.setDate(d.getDate() + 7 * n);
           else if (sch.intervalUnit === 'months') d.setMonth(d.getMonth() + n);
           else if (sch.intervalUnit === 'years') d.setFullYear(d.getFullYear() + n);
-          return applyFloor(dateKey(d));
+          return dateKey(d);
         }
-        return applyFloor(todayKey());
+        // never done: the plan's Start date is the first due date, if set
+        return sch.startDate || todayKey();
       }
       // weekdays / monthdays / yearly: scan forward from the day AFTER the last
-      // completion (or from today if never done) and return the first matching
-      // date as-is — even if that lands in the past, so a missed occurrence stays
-      // pinned to its real date instead of jumping forward to today.
+      // completion (or from Start date / today if never done) and return the
+      // first matching date as-is — even if that lands in the past, so a
+      // missed occurrence stays pinned to its real date instead of jumping
+      // forward to today.
       let d;
       if (last) { d = parseDate(last); d.setDate(d.getDate() + 1); }
+      else if (sch.startDate) { d = parseDate(sch.startDate); }
       else { d = new Date(); d.setHours(0, 0, 0, 0); }
       if (sch.type === 'weekdays') {
         const days = (sch.weekdays && sch.weekdays.length) ? sch.weekdays : [1];
-        for (let i = 0; i < 400; i++) { if (days.includes(d.getDay())) return applyFloor(dateKey(d)); d.setDate(d.getDate() + 1); }
-        return applyFloor(dateKey(d));
+        for (let i = 0; i < 400; i++) { if (days.includes(d.getDay())) return dateKey(d); d.setDate(d.getDate() + 1); }
+        return dateKey(d);
       }
       if (sch.type === 'monthdays') {
         const days = (sch.monthdays && sch.monthdays.length) ? sch.monthdays : [1];
-        for (let i = 0; i < 400; i++) { if (days.includes(d.getDate())) return applyFloor(dateKey(d)); d.setDate(d.getDate() + 1); }
-        return applyFloor(dateKey(d));
+        for (let i = 0; i < 400; i++) { if (days.includes(d.getDate())) return dateKey(d); d.setDate(d.getDate() + 1); }
+        return dateKey(d);
       }
       if (sch.type === 'yearly') {
         const month = sch.yearMonth || 1, day = sch.yearDay || 1;
-        for (let i = 0; i < 800; i++) { if (d.getMonth() + 1 === month && d.getDate() === day) return applyFloor(dateKey(d)); d.setDate(d.getDate() + 1); }
-        return applyFloor(dateKey(d));
+        for (let i = 0; i < 800; i++) { if (d.getMonth() + 1 === month && d.getDate() === day) return dateKey(d); d.setDate(d.getDate() + 1); }
+        return dateKey(d);
       }
-      return applyFloor(todayKey());
+      return todayKey();
     }
     function scheduleSummary(sch) {
       if (sch.type === 'date') return sch.onDate ? `On ${fmtShort(sch.onDate)}` : 'No date set';
@@ -1497,6 +1498,10 @@
       } else {
         html += `<input type="date" value="${sch.onDate || ''}" onchange="routineDraftScheduleFieldSilent(${idArg},'onDate',this.value)" />`;
       }
+      if (sch.type !== 'date') {
+        html += `<div class="field"><label>Start date</label><input type="date" value="${sch.startDate || ''}" onchange="routineDraftScheduleFieldSilent(${idArg},'startDate',this.value)" /></div>
+        <span style="font-size:12px;color:var(--muted);">When this plan begins — doesn't count as done by itself</span>`;
+      }
       return html;
     }
 
@@ -1571,8 +1576,8 @@
           <div class="r-row2" style="flex-direction:column;align-items:flex-start;gap:8px;">
             <button class="chip${draft.paused ? ' on' : ''}" onclick="routineDraftSet('${routine.id}','paused',${!draft.paused})">${draft.paused ? 'Paused: On' : 'Paused: Off'}</button>
             ${scheduleEditorHtml(sch, `'${routine.id}'`)}
-            ${sch.type !== 'date' ? `<div class="field"><label>Start from</label><input type="date" value="${draft.startFrom || ''}" onchange="routineDraftSetSilent('${routine.id}','startFrom',this.value)" /></div>
-            <span style="font-size:12px;color:var(--muted);">Optional — sets last done, so timing counts from here</span>` : ''}
+            ${sch.type !== 'date' ? `<div class="field"><label>Last done</label><input type="date" value="${draft.lastDone || ''}" onchange="routineDraftSetSilent('${routine.id}','lastDone',this.value)" /></div>
+            <span style="font-size:12px;color:var(--muted);">Optional — if you've already done this, log it here</span>` : ''}
           </div>
           <div class="row">
             <button class="mini" onclick="confirmRoutineEdit('${routine.id}',${gidArg})">Confirm</button>
@@ -1608,10 +1613,9 @@
     function openRoutineEdit(id, groupId) {
       const r = findRoutineRef(id, groupId);
       if (!r) return;
-      const sch = ensureSchedule(r);
+      ensureSchedule(r);
       const lastDone = r.history.length ? r.history.reduce((a, d) => (d > a ? d : a), r.history[0]) : '';
-      const startFrom = sch.floorDate || lastDone || '';
-      editDrafts['routine:' + id] = { name: r.name, paused: r.paused, schedule: JSON.parse(JSON.stringify(r.schedule)), startFrom };
+      editDrafts['routine:' + id] = { name: r.name, paused: r.paused, schedule: JSON.parse(JSON.stringify(r.schedule)), lastDone };
       editingFrequency[id] = true;
       render();
     }
@@ -1623,17 +1627,10 @@
         r.name = d.name;
         r.paused = d.paused;
         r.schedule = d.schedule;
-        if (d.startFrom) {
-          if (d.startFrom > todayKey()) {
-            // future date: don't count it as done — just floor the next due
-            // date so it can't land earlier than this, until a real
-            // completion moves the calculation past it.
-            r.schedule.floorDate = d.startFrom;
-          } else {
-            delete r.schedule.floorDate;
-            if (!r.history.includes(d.startFrom)) r.history.push(d.startFrom);
-          }
-        }
+        // "Last done" is a fact — it only ever logs a real completion.
+        // "Start date" (inside the schedule itself) is the plan and never
+        // touches history.
+        if (d.lastDone && !r.history.includes(d.lastDone)) r.history.push(d.lastDone);
       }
       delete editDrafts['routine:' + id];
       editingFrequency[id] = false;
@@ -2265,6 +2262,16 @@
     }
 
     setTodayLabel();
+    // A true page reload always resets these (fresh `let` init below), but iOS
+    // Safari often restores the page from its back/forward cache instead of
+    // truly reloading — pageshow fires in both cases, so this is what
+    // actually guarantees "coming back to the app defaults to Today".
+    window.addEventListener('pageshow', function () {
+      sleepViewDate = null;
+      weightViewDate = null;
+      render();
+    });
+
     render();
     supaLoad();
   </script>
