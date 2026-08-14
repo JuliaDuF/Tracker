@@ -15,7 +15,7 @@
       --accent: #4A6C8C; --accent-soft: rgba(74,108,140,0.10); --warn: #A8735B; --accent2: #C98A4B;
       --gold: #B9985E; --silver: #9AA6B0; --bronze: #A9744F;
       --hue-movement: #F0654A; --hue-savings: #E8A23C; --hue-routines: #4CAF6E; --hue-body: #3AAFA0; --hue-projects: #9B6BC7;
-      --radius-card: 18px; --radius-btn: 999px;
+      --radius-card: 24px; --radius-btn: 999px;
       --shadow-card: 0 2px 10px rgba(0,0,0,0.06);
     }
     html, body { overflow-x: hidden; }
@@ -70,6 +70,7 @@
     .modal-box .panel { gap: 16px; }
     .modal-box .field { margin-bottom: 2px; }
     .check-btn.big, .close-btn.big { width: 46px; height: 46px; }
+    .check-btn.roomy, .close-btn.roomy { width: 42px; height: 42px; }
 
     .quick { margin: 18px 0; }
     .quickbox { display: flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-btn); box-shadow: var(--shadow-card); padding: 6px 6px 6px 22px; }
@@ -196,7 +197,7 @@
     .status.warn { color: var(--warn); font-weight: 600; }
     .status.ok { color: var(--muted); }
 
-    .group-head { display: flex; align-items: center; gap: 8px; padding: 12px 0; }
+    .group-head { display: flex; align-items: center; gap: 8px; padding: 12px 0; cursor: pointer; }
     .disc { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; flex: 0 0 auto; transition: transform 0.25s ease; }
     .disc.open { transform: rotate(90deg); }
     .disc svg { display: block; }
@@ -407,10 +408,8 @@
     let calMonth = new Date().getMonth();
     let calYear = new Date().getFullYear();
     let sleepEditing = false;
-    let sleepViewDate = null;
     let sleepShowRecord = false;
     let weightEditing = false;
-    let weightViewDate = null;
     let weightShowRecord = false;
     let editingFrequency = {};
     let dataPanelOpen = false;
@@ -664,7 +663,6 @@
     function tomorrowKey() { const d = new Date(); d.setDate(d.getDate() + 1); return dateKey(d); }
     function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return dateKey(d); }
     function getSleepViewDate() {
-      if (sleepViewDate) return sleepViewDate;
       // Auto-track: point at the oldest not-yet-complete night, or the day
       // after the last completed one — driven entirely by whether "up at"
       // has been filled in, never by what time it is right now.
@@ -673,14 +671,8 @@
       const isComplete = !!(latest.bed && latest.wake);
       return isComplete ? addDaysToKey(latest.date, 1) : latest.date;
     }
-    function setSleepViewDate(value) {
-      if (!value) return;
-      setTimeout(() => { sleepViewDate = value; render(); }, 50);
-    }
-    function resetSleepViewDate() { sleepViewDate = null; sleepShowRecord = false; render(); }
     function renderSleepCard() {
       const viewDate = getSleepViewDate();
-      const isAutoTracking = !sleepViewDate;
       const isCalendarToday = viewDate === todayKey();
       const te = data.sleep.entries.find(e => e.date === viewDate);
       const draft = editDrafts['sleep'];
@@ -706,17 +698,17 @@
       } else if (!data.sleep.paused) {
         const dur = te && sleepDurEntry(te);
         const label = isCalendarToday ? 'Last night' : fmtShort(viewDate);
-        html += `<div class="pace" style="margin-top:4px;">
-          ${te ? `${label}: <b>${te.bed || '—'} → ${te.wake || '—'}</b>${dur ? ` · ${fmtMinutes(dur * 60)}` : ''}` : `${label}: nothing logged yet — add it below.`}
-        </div>
-        <div class="row">
-          <span class="row-label">Editing</span>
-          <input type="date" class="editdate" value="${viewDate}" onchange="setSleepViewDate(this.value)" />
-          ${!isAutoTracking ? `<button class="link" onclick="resetSleepViewDate()">Today</button>` : ''}
+        if (te) {
+          html += `<div class="figure">${dur ? fmtMinutes(dur * 60) : '—'}</div>
+          <div class="figure-sub">${label}: ${te.bed || '—'} → ${te.wake || '—'}</div>`;
+        } else {
+          html += `<div class="pace" style="margin-top:4px;">${label}: nothing logged yet — add it below.</div>`;
+        }
+        html += `<div class="row" style="justify-content:flex-end;">
+          <button class="plus" onclick="openLogSleepModal('${viewDate}')">${PLUS_ICON}</button>
         </div>`;
-        html += renderSleepForm(viewDate, te);
         if (data.sleep.entries.length > 0) {
-          html += `<div class="row"><button class="link" onclick="toggleSleepRecord()">${sleepShowRecord ? 'Hide record' : 'Record'}</button></div>`;
+          html += `<div class="row"><button class="link" onclick="toggleSleepRecord()">${sleepShowRecord ? 'Hide record' : 'Show record'}</button></div>`;
           if (sleepShowRecord) html += renderSleepRecord();
         }
       }
@@ -728,34 +720,33 @@
       let html = `<div class="hist">`;
       for (const e of recent) {
         html += `<div class="entry"><b>${fmtShort(e.date)}</b><span>${e.bed || '—'} → ${e.wake || '—'}</span>
-          <button class="link" style="margin-left:auto;" onclick="jumpSleepToDate('${e.date}')">Edit</button>
+          <button class="link" style="margin-left:auto;" onclick="openLogSleepModal('${e.date}')">Edit</button>
           <button class="link" onclick="clearSleepEntry('${e.date}')">Clear</button></div>`;
       }
       html += `</div>`;
       return html;
     }
-    function jumpSleepToDate(dateStr) { sleepViewDate = dateStr; sleepShowRecord = false; render(); }
     function toggleSleepRecord() { sleepShowRecord = !sleepShowRecord; render(); }
     function clearSleepEntry(dateStr) {
       if (!confirm('Clear this night\'s sleep entry?')) return;
       data.sleep.entries = data.sleep.entries.filter(e => e.date !== dateStr);
       saveData();
     }
-    function renderSleepForm(dateStr, te) {
-      return `<div class="row">
-        <span class="row-label">To bed</span>
-        <input type="time" class="timeinput" id="sleepBedInput" value="${te ? te.bed : ''}" />
-      </div>
-      <div class="row">
-        <span class="row-label">Up at</span>
-        <input type="time" class="timeinput" id="sleepWakeInput" value="${te ? te.wake : ''}" />
-        <button class="check-btn" style="margin-left:auto;" onclick="saveSleepEntry('${dateStr}')">${CHECK_ICON}</button>
-      </div>`;
+    function openLogSleepModal(dateStr) {
+      const te = data.sleep.entries.find(e => e.date === dateStr);
+      openModal(`Log sleep`, `
+        <div class="panel" style="margin-top:0;">
+          <div class="field"><label>Date</label><input type="date" class="editdate" id="m_sleepDate" value="${dateStr}" /></div>
+          <div class="field"><label>To bed</label><input type="time" class="timeinput" id="m_sleepBed" value="${te ? te.bed : ''}" /></div>
+          <div class="field"><label>Up at</label><input type="time" class="timeinput" id="m_sleepWake" value="${te ? te.wake : ''}" /></div>
+        </div>
+      `, `submitLogSleep()`, 'body');
     }
-    function saveSleepEntry(dateStr) {
-      const bed = document.getElementById('sleepBedInput').value;
-      const wake = document.getElementById('sleepWakeInput').value;
-      if (!bed && !wake) return;
+    function submitLogSleep() {
+      const dateStr = document.getElementById('m_sleepDate').value;
+      const bed = document.getElementById('m_sleepBed').value;
+      const wake = document.getElementById('m_sleepWake').value;
+      if (!dateStr || (!bed && !wake)) { closeModal(); return; }
       // Infer which calendar day bedtime belongs to from the clock time
       // itself: past midnight but before noon reads as "still last night,
       // just very late" (today, same date as this entry); noon or later
@@ -764,6 +755,7 @@
       const wakeDay = 'today';
       data.sleep.entries = data.sleep.entries.filter(e => e.date !== dateStr);
       data.sleep.entries.push({ date: dateStr, bed: bed || '', wake: wake || '', bedDay, wakeDay });
+      closeModal();
       saveData();
     }
     function toggleSleepPause() { data.sleep.paused = !data.sleep.paused; saveData(); }
@@ -794,12 +786,7 @@
       ], { summary: avg != null ? `Avg ${avg}h over ${durs.length} night${durs.length === 1 ? '' : 's'}` : '' });
     }
 
-    function getWeightViewDate() { return weightViewDate || effectiveDateKey(DAY_CUTOFF_HOUR); }
-    function setWeightViewDate(value) {
-      if (!value) return;
-      setTimeout(() => { weightViewDate = value; render(); }, 50);
-    }
-    function resetWeightViewDate() { weightViewDate = null; weightShowRecord = false; render(); }
+    function getWeightViewDate() { return effectiveDateKey(DAY_CUTOFF_HOUR); }
     function weightTrendHtml(viewDate, te) {
       const current = te.am ?? te.pm;
       if (current == null) return '';
@@ -807,9 +794,9 @@
       if (!prior) return '';
       const priorVal = prior.am ?? prior.pm;
       const diff = round1(current - priorVal);
-      if (diff === 0) return ` <span style="color:var(--muted);">· steady</span>`;
+      if (diff === 0) return `<span style="color:var(--muted);">· steady</span>`;
       const arrow = diff > 0 ? '↑' : '↓';
-      return ` <span style="color:var(--muted);">${arrow} ${Math.abs(diff)} kg</span>`;
+      return `<span style="color:var(--muted);">${arrow} ${Math.abs(diff)} kg</span>`;
     }
     function renderWeightCard() {
       const viewDate = getWeightViewDate();
@@ -836,17 +823,18 @@
         html += `<div class="view-fade">${renderWeightChart()}</div>`;
       } else if (!data.weight.paused) {
         const label = isToday ? 'Today' : fmtShort(viewDate);
-        html += `<div class="pace" style="margin-top:4px;">
-          ${te ? `${label}: <b>${te.am ?? '—'}</b> am · <b>${te.pm ?? '—'}</b> pm (kg)${weightTrendHtml(viewDate, te)}` : `${label}: nothing logged yet — add it below.`}
-        </div>
-        <div class="row">
-          <span class="row-label">Editing</span>
-          <input type="date" class="editdate" value="${viewDate}" onchange="setWeightViewDate(this.value)" />
-          ${!isToday ? `<button class="link" onclick="resetWeightViewDate()">Today</button>` : ''}
+        if (te) {
+          const hero = te.am ?? te.pm;
+          html += `<div class="figure">${hero}<small>kg</small></div>
+          <div class="figure-sub">${label}: ${te.am ?? '—'} am · ${te.pm ?? '—'} pm ${weightTrendHtml(viewDate, te)}</div>`;
+        } else {
+          html += `<div class="pace" style="margin-top:4px;">${label}: nothing logged yet — add it below.</div>`;
+        }
+        html += `<div class="row" style="justify-content:flex-end;">
+          <button class="plus" onclick="openLogWeightModal('${viewDate}')">${PLUS_ICON}</button>
         </div>`;
-        html += renderWeightForm(viewDate, te);
         if (data.weight.entries.length > 0) {
-          html += `<div class="row"><button class="link" onclick="toggleWeightRecord()">${weightShowRecord ? 'Hide record' : 'Record'}</button></div>`;
+          html += `<div class="row"><button class="link" onclick="toggleWeightRecord()">${weightShowRecord ? 'Hide record' : 'Show record'}</button></div>`;
           if (weightShowRecord) html += renderWeightRecord();
         }
       }
@@ -858,34 +846,36 @@
       let html = `<div class="hist">`;
       for (const e of recent) {
         html += `<div class="entry"><b>${fmtShort(e.date)}</b><span>${e.am ?? '—'} am · ${e.pm ?? '—'} pm</span>
-          <button class="link" style="margin-left:auto;" onclick="jumpWeightToDate('${e.date}')">Edit</button>
+          <button class="link" style="margin-left:auto;" onclick="openLogWeightModal('${e.date}')">Edit</button>
           <button class="link" onclick="clearWeightEntry('${e.date}')">Clear</button></div>`;
       }
       html += `</div>`;
       return html;
     }
-    function jumpWeightToDate(dateStr) { weightViewDate = dateStr; weightShowRecord = false; render(); }
     function toggleWeightRecord() { weightShowRecord = !weightShowRecord; render(); }
     function clearWeightEntry(dateStr) {
       if (!confirm('Clear this day\'s weight entry?')) return;
       data.weight.entries = data.weight.entries.filter(e => e.date !== dateStr);
       saveData();
     }
-    function renderWeightForm(dateStr, te) {
-      return `<div class="row">
-        <span class="row-label">Morning</span>
-        <input type="number" step="0.1" class="short" id="weightAmInput" value="${te && te.am != null ? te.am : ''}" />
-        <span class="row-label">Evening</span>
-        <input type="number" step="0.1" class="short" id="weightPmInput" value="${te && te.pm != null ? te.pm : ''}" />
-        <button class="check-btn" style="margin-left:auto;" onclick="saveWeightEntry('${dateStr}')">${CHECK_ICON}</button>
-      </div>`;
+    function openLogWeightModal(dateStr) {
+      const te = data.weight.entries.find(e => e.date === dateStr);
+      openModal(`Log weight`, `
+        <div class="panel" style="margin-top:0;">
+          <div class="field"><label>Date</label><input type="date" class="editdate" id="m_weightDate" value="${dateStr}" /></div>
+          <div class="field"><label>Morning</label><input type="number" step="0.1" class="short" id="m_weightAm" value="${te && te.am != null ? te.am : ''}" /></div>
+          <div class="field"><label>Evening</label><input type="number" step="0.1" class="short" id="m_weightPm" value="${te && te.pm != null ? te.pm : ''}" /></div>
+        </div>
+      `, `submitLogWeight()`, 'body');
     }
-    function saveWeightEntry(dateStr) {
-      const am = document.getElementById('weightAmInput').value;
-      const pm = document.getElementById('weightPmInput').value;
-      if (!am && !pm) return;
+    function submitLogWeight() {
+      const dateStr = document.getElementById('m_weightDate').value;
+      const am = document.getElementById('m_weightAm').value;
+      const pm = document.getElementById('m_weightPm').value;
+      if (!dateStr || (!am && !pm)) { closeModal(); return; }
       data.weight.entries = data.weight.entries.filter(e => e.date !== dateStr);
       data.weight.entries.push({ date: dateStr, am: am ? parseFloat(am) : null, pm: pm ? parseFloat(pm) : null });
+      closeModal();
       saveData();
     }
     function toggleWeightPause() { data.weight.paused = !data.weight.paused; saveData(); }
@@ -1697,12 +1687,12 @@
         return html;
       }
       let html = `<div class="card">
-        <div class="group-head">
-          <button class="disc${group.collapsed ? '' : ' open'}" onclick="toggleGroupCollapse('${group.id}')">${CHEVRON_RIGHT}</button>
+        <div class="group-head" onclick="toggleGroupCollapse('${group.id}')">
+          <button class="disc${group.collapsed ? '' : ' open'}">${CHEVRON_RIGHT}</button>
           <span class="cname" style="border-bottom:none;">${group.name}</span>
           ${group.paused ? '<span class="badge-pause">Paused</span>' : ''}
           <span style="flex:1;"></span>
-          <button class="link" onclick="openGroupEdit('${group.id}')">Edit</button>
+          <button class="link" onclick="event.stopPropagation(); openGroupEdit('${group.id}')">Edit</button>
         </div>`;
       if (!group.collapsed) {
         html += `<div class="group-items">`;
@@ -1747,9 +1737,9 @@
             ${sch.type !== 'date' ? `<div class="field"><label>Last done</label><input type="date" value="${draft.lastDone || ''}" onchange="routineDraftSetSilent('${routine.id}','lastDone',this.value)" /></div>
             <span style="font-size:12px;color:var(--muted);">Optional — if you've already done this, log it here</span>` : ''}
           </div>
-          <div class="row" style="justify-content:space-between;">
-            <button class="close-btn" onclick="closeRoutineEdit('${routine.id}')">${X_ICON}</button>
-            <button class="check-btn" onclick="confirmRoutineEdit('${routine.id}',${gidArg})">${CHECK_ICON}</button>
+          <div class="row" style="justify-content:space-between;margin-top:20px;">
+            <button class="close-btn roomy" onclick="closeRoutineEdit('${routine.id}')">${X_ICON}</button>
+            <button class="check-btn roomy" onclick="confirmRoutineEdit('${routine.id}',${gidArg})">${CHECK_ICON}</button>
           </div>
         </div>`;
         return html;
@@ -1935,6 +1925,10 @@
           <div class="field" id="m_routNewGroupField" style="display:none;">
             <input type="text" style="flex:1;" id="m_routNewGroupName" placeholder="New group name" />
           </div>
+          <div class="field" id="m_routStartDateField"><label>Start date</label><input type="date" class="editdate" id="m_routStartDate" /></div>
+          <span id="m_routStartDateNote" style="font-size:12px;color:var(--muted);">When this plan begins — doesn't count as done by itself</span>
+          <div class="field" id="m_routLastDoneField"><label>Last done</label><input type="date" class="editdate" id="m_routLastDone" /></div>
+          <span id="m_routLastDoneNote" style="font-size:12px;color:var(--muted);">Optional — if you've already done this, log it here</span>
         </div>
       `, `submitAddRoutine()`, 'routines');
       modalRoutineScheduleChange();
@@ -1966,6 +1960,11 @@
       } else if (type === 'date') {
         el.innerHTML = `<div class="field"><label></label><input type="date" class="editdate" id="m_routDate" /></div>`;
       }
+      const showStart = type !== 'date';
+      document.getElementById('m_routStartDateField').style.display = showStart ? 'flex' : 'none';
+      document.getElementById('m_routStartDateNote').style.display = showStart ? 'block' : 'none';
+      document.getElementById('m_routLastDoneField').style.display = showStart ? 'flex' : 'none';
+      document.getElementById('m_routLastDoneNote').style.display = showStart ? 'block' : 'none';
     }
     function modalToggleWeekday(day, btn) {
       const idx = modalWeekdaySelection.indexOf(day);
@@ -1997,7 +1996,11 @@
       const name = document.getElementById('m_routName').value.trim();
       if (!name) return;
       const schedule = buildScheduleFromModal();
+      const startDate = document.getElementById('m_routStartDate').value;
+      if (startDate && schedule.type !== 'date') schedule.startDate = startDate;
       const r = { id: uid(), name, mode: 'cadence', cadence: 'weekly', nextDate: null, history: [], paused: false, aliases: [], schedule };
+      const lastDone = document.getElementById('m_routLastDone').value;
+      if (lastDone && schedule.type !== 'date') r.history.push(lastDone);
       const groupChoice = document.getElementById('m_routGroup').value;
       if (groupChoice === 'new') {
         const groupName = document.getElementById('m_routNewGroupName').value.trim() || 'New group';
@@ -2031,7 +2034,7 @@
         });
         const dueSoon = leaves
           .map(r => ({ r, due: routineDue(r) }))
-          .filter(x => x.due && daysUntil(x.due) <= 3)
+          .filter(x => x.due && daysUntil(x.due) <= 0)
           .sort((a, b) => (a.due < b.due ? -1 : 1));
         if (dueSoon.length === 0) {
           html += `<div class="due-item">Nothing due soon.</div>`;
@@ -2066,29 +2069,6 @@
       start.setDate(start.getDate() - 6);
       const inWeek = (dateStr) => parseDate(dateStr) >= start;
       const candidates = [];
-      if (!data.sleep.paused) {
-        const entries = data.sleep.entries.filter(e => inWeek(e.date));
-        const goalBed = data.sleep.goalBedTime || '23:30';
-        const goalWake = data.sleep.goalWakeTime || '08:00';
-        let bt = toMin(goalBed) / 60; if (bt < 12) bt += 24;
-        const wt = toMin(goalWake);
-        const earlyNights = entries.filter(e => { const v = bedHourValue(e); return v != null && v <= bt; }).length;
-        const earlyMornings = entries.filter(e => { const w = toMin(e.wake); return w != null && w <= wt; }).length;
-        if (earlyNights > 0) candidates.push({ score: earlyNights + 0.5, text: `${earlyNights} night${earlyNights === 1 ? '' : 's'} in bed by ${fmtTime12(goalBed)} this week` });
-        if (earlyMornings > 0) candidates.push({ score: earlyMornings + 0.5, text: `${earlyMornings} morning${earlyMornings === 1 ? '' : 's'} up by ${fmtTime12(goalWake)} this week` });
-      }
-      if (!data.weight.paused && data.weight.goalTarget > 0) {
-        const wentries = [...data.weight.entries].filter(e => e.am != null || e.pm != null).sort((a, b) => (a.date < b.date ? 1 : -1));
-        if (wentries.length > 0) {
-          const latest = wentries[0].am ?? wentries[0].pm;
-          const diff = round1(latest - data.weight.goalTarget);
-          let text;
-          if (diff > 0) text = `${diff} kg to go to reach your goal weight`;
-          else if (diff < 0) text = `${Math.abs(diff)} kg under your goal weight`;
-          else text = `Right at your goal weight`;
-          candidates.push({ score: 2, text });
-        }
-      }
       data.activities.forEach(a => {
         if (a.paused) return;
         const logs = a.logs.filter(l => inWeek(l.date));
@@ -2427,13 +2407,10 @@
     }
 
     setTodayLabel();
-    // A true page reload always resets these (fresh `let` init below), but iOS
-    // Safari often restores the page from its back/forward cache instead of
-    // truly reloading — pageshow fires in both cases, so this is what
-    // actually guarantees "coming back to the app defaults to Today".
+    // iOS Safari often restores the page from its back/forward cache instead
+    // of truly reloading — pageshow fires in both cases, so a fresh render
+    // here keeps everything (like the Sleep/Weight auto-tracked date) current.
     window.addEventListener('pageshow', function () {
-      sleepViewDate = null;
-      weightViewDate = null;
       render();
     });
 
