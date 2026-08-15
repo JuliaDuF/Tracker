@@ -696,15 +696,24 @@
       if (bodyView === 'chart' && !data.sleep.paused) {
         html += `<div class="view-fade">${renderSleepChart()}</div>`;
       } else if (!data.sleep.paused) {
-        const dur = te && sleepDurEntry(te);
         const label = isCalendarToday ? 'Last night' : fmtShort(viewDate);
-        if (te) {
-          html += `<div class="figure">${dur ? fmtMinutes(dur * 60) : '—'}</div>
-          <div class="figure-sub">${label}: ${te.bed || '—'} → ${te.wake || '—'}</div>`;
+        let heroHtml = null, subHtml = '';
+        if (te && te.bed && te.wake) {
+          const dur = sleepDurEntry(te);
+          heroHtml = dur ? fmtMinutes(dur * 60) : '—';
+          subHtml = `${label}: ${te.bed} → ${te.wake}`;
+        } else if (te && (te.bed || te.wake)) {
+          heroHtml = te.wake ? `${fmtTime12(te.wake)}<small>up at</small>` : `${fmtTime12(te.bed)}<small>to bed</small>`;
+          subHtml = `${label} — waiting on the other time`;
         } else {
-          html += `<div class="pace" style="margin-top:4px;">${label}: nothing logged yet — add it below.</div>`;
+          const last = [...data.sleep.entries].filter(e => e.bed || e.wake).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+          if (last) {
+            heroHtml = last.wake ? `${fmtTime12(last.wake)}<small>up at</small>` : `${fmtTime12(last.bed)}<small>to bed</small>`;
+            subHtml = `${fmtShort(last.date)} — nothing logged for ${label.toLowerCase()} yet`;
+          }
         }
-        html += `<div class="row" style="justify-content:flex-end;">
+        html += `<div class="row" style="align-items:center;justify-content:space-between;">
+          <div>${heroHtml ? `<div class="figure" style="margin-top:0;">${heroHtml}</div><div class="figure-sub">${subHtml}</div>` : `<div class="pace" style="margin-top:0;">${label}: nothing logged yet — add it below.</div>`}</div>
           <button class="plus" onclick="openLogSleepModal('${viewDate}')">${PLUS_ICON}</button>
         </div>`;
         if (data.sleep.entries.length > 0) {
@@ -823,14 +832,21 @@
         html += `<div class="view-fade">${renderWeightChart()}</div>`;
       } else if (!data.weight.paused) {
         const label = isToday ? 'Today' : fmtShort(viewDate);
+        let heroHtml = null, subHtml = '';
         if (te) {
           const hero = te.am ?? te.pm;
-          html += `<div class="figure">${hero}<small>kg</small></div>
-          <div class="figure-sub">${label}: ${te.am ?? '—'} am · ${te.pm ?? '—'} pm ${weightTrendHtml(viewDate, te)}</div>`;
+          heroHtml = `${hero}<small>kg</small>`;
+          subHtml = `${label}: ${te.am ?? '—'} am · ${te.pm ?? '—'} pm ${weightTrendHtml(viewDate, te)}`;
         } else {
-          html += `<div class="pace" style="margin-top:4px;">${label}: nothing logged yet — add it below.</div>`;
+          const last = [...data.weight.entries].filter(e => e.am != null || e.pm != null).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+          if (last) {
+            const hero = last.am ?? last.pm;
+            heroHtml = `${hero}<small>kg</small>`;
+            subHtml = `${fmtShort(last.date)} — nothing logged for ${label.toLowerCase()} yet`;
+          }
         }
-        html += `<div class="row" style="justify-content:flex-end;">
+        html += `<div class="row" style="align-items:center;justify-content:space-between;">
+          <div>${heroHtml ? `<div class="figure" style="margin-top:0;">${heroHtml}</div><div class="figure-sub">${subHtml}</div>` : `<div class="pace" style="margin-top:0;">${label}: nothing logged yet — add it below.</div>`}</div>
           <button class="plus" onclick="openLogWeightModal('${viewDate}')">${PLUS_ICON}</button>
         </div>`;
         if (data.weight.entries.length > 0) {
